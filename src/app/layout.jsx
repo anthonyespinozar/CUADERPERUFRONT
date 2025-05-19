@@ -1,5 +1,3 @@
-'use client';
-
 import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
@@ -23,4 +21,4 @@ export default function RootLayout({ children }) {
       </body>
     </html>
   );
-} 
+}
