@@ -3,29 +3,41 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import useAuthStore from '@/store/useAuthStore';
+import { authService } from '@/services/authService';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isAuthenticated } = useAuthStore();
   const [formData, setFormData] = useState({
     correo: '',
     password: ''
   });
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
+    
     try {
-      await login(formData.correo, formData.password);
-      toast.success('Inicio de sesión exitoso');
-      router.push('/dashboard');
+      const result = await authService.login({
+        correo: formData.correo,
+        password: formData.password
+      });
+      
+      if (result.token && result.user) {
+        toast.success("Inicio de sesión exitoso");
+        // Redirigir según el rol del usuario
+        if (result.user.rol === 'CHOFER') {
+          router.push('/chofer/dashboard');
+        } else {
+          router.push('/dashboard');
+        }
+      }
     } catch (error) {
-      toast.error(error.message || 'Error al iniciar sesión');
+      console.error("Error en login:", error);
+      toast.error(error.message || "Error al iniciar sesión");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -36,7 +48,8 @@ export default function LoginPage() {
     });
   };
 
-  if (isAuthenticated) {
+  // Si ya está autenticado, redirigir al dashboard
+  if (authService.isAuthenticated()) {
     router.push('/dashboard');
     return null;
   }
@@ -100,10 +113,10 @@ export default function LoginPage() {
             <div>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
                 className="btn-primary w-full"
               >
-                {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </button>
             </div>
           </form>
