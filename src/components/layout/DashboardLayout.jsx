@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { authService } from '@/services/auth.service';
+import { authService } from '@/services/authService';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -10,11 +10,11 @@ import { toast } from 'sonner';
 
 // Configuración de rutas protegidas y roles permitidos
 const PROTECTED_ROUTES = {
-  '/dashboard': ['ADMINISTRADOR', 'SUPERVISOR', 'OPERARIO'],
-  '/usuarios': ['ADMINISTRADOR'],
-  '/compras': ['ADMINISTRADOR', 'SUPERVISOR'],
-  '/inventario': ['ADMINISTRADOR', 'SUPERVISOR'],
-  '/produccion': ['ADMINISTRADOR', 'SUPERVISOR', 'OPERARIO']
+  '/dashboard': ['administrador', 'SUPERVISOR', 'OPERARIO'],
+  '/usuarios': ['administrador'],
+  '/compras': ['administrador', 'SUPERVISOR'],
+  '/inventario': ['administrador', 'SUPERVISOR'],
+  '/produccion': ['administrador', 'SUPERVISOR', 'OPERARIO']
 };
 
 export function DashboardLayout({ children }) {

@@ -1,25 +1,29 @@
 'use client';
 
-import { useTable } from '@/hooks/useTable';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { useState } from 'react';
+import { LoadingSpinner } from '../LoadingSpinner';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 export function DataTable({
   columns,
-  data,
+  data = [],
+  isLoading,
   pageSize = 10,
-  onEdit,
-  onDelete,
-  isLoading
+  actions
 }) {
-  const {
-    currentData,
-    currentPage,
-    totalPages,
-    handlePageChange,
-    startIndex,
-    endIndex
-  } = useTable({ data, pageSize });
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Cálculos de paginación
+  const totalPages = Math.ceil(data.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentData = data.slice(startIndex, endIndex);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -46,11 +50,9 @@ export function DataTable({
                   {column.header}
                 </th>
               ))}
-              {(onEdit || onDelete) && (
-                <th scope="col" className="relative px-6 py-3">
-                  <span className="sr-only">Acciones</span>
-                </th>
-              )}
+              {actions && <th scope="col" className="relative px-6 py-3">
+                <span className="sr-only">Acciones</span>
+              </th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 bg-white">
@@ -64,28 +66,9 @@ export function DataTable({
                     {column.render ? column.render(row) : row[column.key]}
                   </td>
                 ))}
-                {(onEdit || onDelete) && (
+                {actions && (
                   <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                    {onEdit && (
-                      <button
-                        onClick={() => onEdit(row)}
-                        className="mr-2 text-indigo-600 hover:text-indigo-900"
-                      >
-                        Editar
-                      </button>
-                    )}
-                    {onDelete && (
-                      <button
-                        onClick={() => {
-                          if (window.confirm('¿Está seguro de eliminar este registro?')) {
-                            onDelete(row);
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Eliminar
-                      </button>
-                    )}
+                    {actions(row)}
                   </td>
                 )}
               </tr>

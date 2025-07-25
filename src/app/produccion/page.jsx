@@ -1,8 +1,7 @@
 'use client';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { authService } from '@/services/auth.service';
-
+import { authService } from '@/services/authService';
 export default function ProduccionPage() {
   const user = authService.getUser();
 

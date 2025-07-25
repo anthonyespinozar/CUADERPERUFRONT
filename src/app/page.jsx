@@ -2,20 +2,27 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import useAuthStore from '@/store/useAuthStore';
+import useStore from '@/store/useStore';
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, hydrated } = useStore();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard');
-    } else {
-      router.push('/login');
-    }
-  }, [isAuthenticated, router]);
+    // Solo redirigir cuando el estado esté hidratado
+    if (!hydrated) return;
 
-  return null;
+    const path = isAuthenticated ? '/dashboard' : '/login';
+    router.replace(path);
+  }, [isAuthenticated, hydrated, router]);
+
+  // Mostrar loading mientras se hidrata el estado
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-r-transparent"></div>
+        <p className="mt-2 text-gray-600">Cargando...</p>
+      </div>
+    </div>
+  );
 }

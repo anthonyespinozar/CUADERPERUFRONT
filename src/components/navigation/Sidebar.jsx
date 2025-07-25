@@ -19,7 +19,7 @@ export default function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const user = authService.getUser();
-  const isAdmin = user?.rol === 'ADMIN';
+  const isAdmin = user?.rol === 'administrador';
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
@@ -46,7 +46,7 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-2 py-4">
         {navigation.map((item) => {
-          // Skip admin-only items for non-admin users
+          // Omitir elementos exclusivos para administradores para usuarios que no son administradores
           if (item.adminOnly && !isAdmin) return null;
 
           const isActive = pathname === item.href;

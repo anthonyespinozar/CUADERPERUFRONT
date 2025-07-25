@@ -1,23 +1,17 @@
-import { useCrud } from './useCrud';
-import { userService } from '@/services/userService';
-import { toast } from 'sonner';
+import { useQuery } from "@tanstack/react-query";
+import { getUsers } from "@/services/userService";
 
 export const useUsers = () => {
-  const crudMethods = useCrud(userService);
-
-  // Aquí puedes agregar métodos específicos para usuarios
-  const changePassword = async (userId, passwordData) => {
-    try {
-      await userService.changePassword(userId, passwordData);
-      toast.success('Contraseña actualizada exitosamente');
-    } catch (error) {
-      toast.error(error.message);
-      throw error;
-    }
-  };
+  const {isLoading, data, isError, isFetching, refetch } = useQuery({
+    queryKey: ["users"],
+    queryFn: getUsers,
+  });
 
   return {
-    ...crudMethods,
-    changePassword,
+    data,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
   };
-}; 
+};

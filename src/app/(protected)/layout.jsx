@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/services/auth.service';
+import { authService } from '@/services/authService';
 import Sidebar from '@/components/navigation/Sidebar';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { toast } from 'sonner';

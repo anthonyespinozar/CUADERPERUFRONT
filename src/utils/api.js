@@ -1,8 +1,6 @@
 import axios from "axios";
 import environment from "@/config/environment";
 import { authService } from "@/services/authService";
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
 
 const BASE_URL = environment.url_backend;
 
@@ -49,7 +47,8 @@ export const makeGetRequest = async (url, params = {}) => {
     const response = await api.get(url, { params });
     return response.data;
   } catch (error) {
-    throw new Error(error.message || 'Error al obtener los datos');
+    console.error("Error making GET request:", error);
+    throw error;
   }
 };
 
@@ -58,7 +57,8 @@ export const makePostRequest = async (url, data = {}) => {
     const response = await api.post(url, data);
     return response.data;
   } catch (error) {
-    throw new Error(error.message || 'Error al enviar los datos');
+    console.error("Error haciendo la solicitud POST:", error);
+    throw error;
   }
 };
 
@@ -67,7 +67,8 @@ export const makePutRequest = async (url, data = {}) => {
     const response = await api.put(url, data);
     return response.data;
   } catch (error) {
-    throw new Error(error.message || 'Error al actualizar los datos');
+    console.error("Error haciendo la solicitud PUT:", error);
+    throw error;
   }
 };
 
@@ -76,45 +77,11 @@ export const makeDeleteRequest = async (url) => {
     const response = await api.delete(url);
     return response.data;
   } catch (error) {
-    throw new Error(error.message || 'Error al eliminar los datos');
+    console.error("Error making DELETE request:", error);
+    throw error;
   }
 };
 
 export default api;
 
-export function useUsers() {
-  const [users, setUsers] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isError, setIsError] = useState(false)
 
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true)
-      const data = await userService.getUsers()
-      if (Array.isArray(data)) {
-        setUsers(data)
-      } else {
-        console.error("Los datos recibidos no son un array:", data)
-        setUsers([])
-      }
-      setIsError(false)
-    } catch (error) {
-      console.error("Error fetching users:", error)
-      toast.error(error.message)
-      setIsError(true)
-      setUsers([])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchUsers()
-  }, [])
-
-  const mutate = async () => {
-    await fetchUsers()
-  }
-
-  return { users, isLoading, isError, mutate }
-}

@@ -1,10 +1,8 @@
 'use client';
 
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { authService } from '@/services/auth.service';
 
 export default function ComprasPage() {
-  const user = authService.getUser();
 
   return (
     <DashboardLayout>

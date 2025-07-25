@@ -2,26 +2,36 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import useAuthStore from '@/store/useAuthStore';
+import useStore from '@/store/useStore';
 
 export default function ProtectedRoute({ children, requiredRole }) {
   const router = useRouter();
-  const { isAuthenticated, hasPermission } = useAuthStore();
+  const { isAuthenticated, user, hydrated } = useStore();
 
   useEffect(() => {
+    // Esperar a que el estado esté hidratado
+    if (!hydrated) return;
+
     if (!isAuthenticated) {
-      router.push('/login');
-    } else if (requiredRole && !hasPermission(requiredRole)) {
-      router.push('/dashboard');
+      router.replace('/login');
+      return;
     }
-  }, [isAuthenticated, requiredRole, hasPermission, router]);
 
-  if (!isAuthenticated) {
-    return null;
-  }
+    if (requiredRole && user?.rol !== requiredRole) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, user, requiredRole, router, hydrated]);
 
-  if (requiredRole && !hasPermission(requiredRole)) {
-    return null;
+  // Mostrar loading mientras se hidrata el estado
+  if (!hydrated || !isAuthenticated || (requiredRole && user?.rol !== requiredRole)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-600 border-r-transparent"></div>
+          <p className="mt-2 text-gray-600">Verificando acceso...</p>
+        </div>
+      </div>
+    );
   }
 
   return children;

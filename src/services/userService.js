@@ -1,19 +1,45 @@
-import { CrudService } from './crudService';
+import { makeGetRequest, makePostRequest, makePutRequest, makeDeleteRequest } from '@/utils/api';
 
-class UserService extends CrudService {
-  constructor() {
-    super('/users'); // El endpoint para usuarios
-  }
-
-  // Aquí puedes agregar métodos específicos para usuarios
-  async changePassword(userId, passwordData) {
-    try {
-      const response = await this.api.post(`${this.endpoint}/${userId}/change-password`, passwordData);
-      return response.data;
-    } catch (error) {
-      throw new Error(error.message || 'Error al cambiar la contraseña');
-    }
+export async function getUsers() {
+  try {
+    const data = await makeGetRequest("/api/usuarios");
+    return data;
+  } catch (e) {
+    throw e;
   }
 }
 
-export const userService = new UserService(); 
+export async function createUser(user) {
+  try {
+    const data = await makePostRequest("/api/usuarios", user);
+    return data;
+  } catch (e) {
+    throw e;
+  }
+}
+
+export async function updateUser(id, user) {
+  try {
+    const data = await makePutRequest(`/api/usuarios/${id}`, user);
+    return data;
+  } catch (e) {
+    throw e;
+  }
+} 
+
+export async function toggleUserStatus(id, status) {
+  try {
+    const data = await makePutRequest(`/api/usuarios/${id}/status`, { activo: status });
+    return data;
+  } catch (e) {   
+    throw e;
+  }
+} 
+export async function deleteUser(id) {
+  try {
+    const data = await makeDeleteRequest(`/api/usuarios/${id}`);
+    return data;
+  } catch (e) {
+    throw e;
+  }
+}
