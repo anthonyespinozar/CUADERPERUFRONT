@@ -1,17 +1,24 @@
 import { Modal, Table, Tag, Progress, Button } from "antd";
 import { useEffect, useState } from "react";
 import { useOrdenProduccionById, useMaterialesPorOrden } from "@/hooks/useOrdenesProduccion";
-import { useProducciones } from "@/hooks/useProducciones";
+import { useProducciones, useFinalizarProduccion, useEliminarProduccion, useEditarProduccion } from "@/hooks/useProducciones";
 import { CheckCircleOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { toast } from "sonner";
-import { finalizarProduccion, eliminarProduccion } from "@/services/produccionesService";
+import { useMateriales } from "@/hooks/useMateriales";
+import { BaseForm } from "@/components/forms/BaseForm";
 
 export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrarProduccion }) {
   const orden = ordenObj?.ordenData;
   const materiales = ordenObj?.materialesSeleccionados || [];
-  const { data: producciones, isLoading: loadingProd, refetch: refetchProd } = useProducciones();
+  const { data: producciones, isLoading: loadingProd } = useProducciones();
+  const { data: materialesData } = useMateriales();
   const [modalEditProduccion, setModalEditProduccion] = useState(null);
+  
+  // Hooks de mutación
+  const finalizarMutation = useFinalizarProduccion();
+  const eliminarMutation = useEliminarProduccion();
+  const editarMutation = useEditarProduccion();
 
   // Filtrar producciones de esta orden
   const produccionesOrden = orden ? (producciones || []).filter(p => p.orden_id === orden.id) : [];
@@ -25,7 +32,7 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
       content: `¿Está seguro que desea finalizar la orden "${orden.codigo}"? Esta acción no se puede deshacer.`,
       async onOk() {
         try {
-          await finalizarProduccion(orden.id);
+          await finalizarMutation.mutateAsync(orden.id);
           toast.success('Orden finalizada correctamente');
         } catch (error) {
           toast.error(error.message || 'Error al finalizar la orden');
@@ -39,9 +46,8 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
       content: `¿Está seguro que desea eliminar este registro de producción?`,
       async onOk() {
         try {
-          await eliminarProduccion(produccion.id);
+          await eliminarMutation.mutateAsync(produccion.id);
           toast.success('Producción eliminada correctamente');
-          refetchProd();
         } catch (error) {
           toast.error(error.message || 'Error al eliminar producción');
         }
@@ -52,6 +58,15 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
   // Columnas materiales
   const matColumns = [
     { title: 'ID Material', dataIndex: 'id', key: 'id', render: (v) => v || '-' },
+    { 
+      title: 'Material', 
+      dataIndex: 'id', 
+      key: 'id', 
+      render: (materialId) => {
+        const material = materialesData?.find(m => m.id === materialId);
+        return `${material.nombre}`;
+      }
+    },
     { title: 'Cantidad necesaria', dataIndex: 'cantidad_necesaria', key: 'cantidad_necesaria', render: v => v ?? '-' },
   ];
   // Columnas producciones
@@ -141,7 +156,51 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
           </div>
         </div>
       )}
-      {/* Modal de edición de producción (pendiente de implementar) */}
+      
+      {/* Modal de edición de producción */}
+      <Modal
+        title={`Editar Producción - Orden #${orden?.codigo || ''}`}
+        open={!!modalEditProduccion}
+        onCancel={() => setModalEditProduccion(null)}
+        footer={null}
+        destroyOnHidden
+        width={500}
+      >
+        <div className="mb-4 p-3 bg-gray-50 rounded">
+          <div className="text-sm text-gray-600">
+            <div><strong>Fecha de registro:</strong> {modalEditProduccion?.fecha_registro ? new Date(modalEditProduccion.fecha_registro).toLocaleString('es-PE') : '-'}</div>
+            <div><strong>Cantidad actual:</strong> {modalEditProduccion?.cantidad_producida || 0}</div>
+          </div>
+        </div>
+        <BaseForm
+          onSubmit={async (values) => {
+            try {
+              await editarMutation.mutateAsync({
+                produccionId: modalEditProduccion.id,
+                produccionData: { cantidad_producida: values.cantidad_producida }
+              });
+              toast.success('Producción editada correctamente');
+              setModalEditProduccion(null);
+            } catch (error) {
+              toast.error(error.message || 'Error al editar producción');
+            }
+          }}
+          fields={[
+            {
+              name: 'cantidad_producida',
+              label: 'Nueva cantidad producida',
+              type: 'number',
+              defaultValue: modalEditProduccion?.cantidad_producida,
+              validation: {
+                required: 'La cantidad es obligatoria',
+                min: { value: 1, message: 'Debe ser mayor a 0' }
+              }
+            }
+          ]}
+          submitText="Guardar cambios"
+          onCancel={() => setModalEditProduccion(null)}
+        />
+      </Modal>
     </Modal>
   );
 } 

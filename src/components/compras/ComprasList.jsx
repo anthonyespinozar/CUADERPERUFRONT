@@ -12,6 +12,7 @@ import { createProveedor } from '@/services/proveedoresService';
 import { createMateriales } from '@/services/materialesService';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
+import { ComprasExecutiveSummary } from './ComprasExecutiveSummary';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -169,15 +170,18 @@ const CompraForm = ({ form, initialValues, onFinish, onCancel, onOpenProveedorMo
       layout="vertical"
       initialValues={initialValues}
       onFinish={onFinish}
+      className="space-y-4"
     >
       {initialValues && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-800">
-            <strong>⚠️ Nota:</strong> Al editar esta compra, se reemplazarán todos los materiales y detalles existentes.
-            Solo se pueden editar compras con estado "pendiente".
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <p className="text-sm text-yellow-800">
+            <strong>⚠️ Nota:</strong> Estás editando una compra existente. Al guardar, se reemplazarán todos los materiales y detalles previos.
+            Solo se pueden editar compras con estado <strong>"pendiente"</strong>.
           </p>
         </div>
       )}
+
+      {/* Proveedor */}
       <Form.Item
         name="proveedor_id"
         label="Proveedor"
@@ -202,86 +206,115 @@ const CompraForm = ({ form, initialValues, onFinish, onCancel, onOpenProveedorMo
         </Select>
       </Form.Item>
 
+      {/* Lista de materiales */}
       <Form.List name="materiales">
         {(fields, { add, remove }) => (
           <>
             {fields.map(({ key, name, ...restField }) => (
-              <div key={key} className="flex gap-2 items-end mb-2">
+              <div
+                key={key}
+                className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end mb-3 bg-gray-50 p-3 rounded-md border"
+              >
+                {/* Material */}
                 <Form.Item
                   {...restField}
                   name={[name, 'material_id']}
                   rules={[{ required: true, message: 'Seleccione material' }]}
-                  style={{ flex: 2 }}
                 >
-                                     <Select
-                     showSearch
-                     placeholder="Material"
-                     popupRender={menu => (
-                       <>
-                         {menu}
-                         <Divider style={{ margin: '8px 0' }} />
-                                                 <Button type="link" onClick={onOpenMaterialModal}>
+                  <Select
+                    showSearch
+                    placeholder="Material"
+                    popupRender={menu => (
+                      <>
+                        {menu}
+                        <Divider style={{ margin: '8px 0' }} />
+                        <Button type="link" onClick={onOpenMaterialModal}>
                           + Nuevo material
                         </Button>
-                       </>
-                     )}
-                   >
+                      </>
+                    )}
+                  >
                     {materiales?.map(m => (
                       <Option key={m.id} value={m.id}>{m.nombre}</Option>
                     ))}
                   </Select>
                 </Form.Item>
+
+                {/* Cantidad */}
                 <Form.Item
                   {...restField}
                   name={[name, 'cantidad']}
-                  rules={[{ required: true, message: 'Cantidad' }]}
-                  style={{ flex: 1 }}
+                  rules={[{ required: true, message: 'Ingrese cantidad' }]}
                 >
-                  <InputNumber min={1} placeholder="Cantidad" style={{ width: '100%' }} />
+                  <InputNumber
+                    min={1}
+                    placeholder="Cantidad"
+                    style={{ width: '100%' }}
+                  />
                 </Form.Item>
+
+                {/* Precio */}
                 <Form.Item
                   {...restField}
                   name={[name, 'precio_unitario']}
-                  rules={[{ required: true, message: 'Precio' }]}
-                  style={{ flex: 1 }}
+                  rules={[{ required: true, message: 'Ingrese precio' }]}
                 >
-                  <InputNumber min={0} step={0.01} placeholder="Precio" style={{ width: '100%' }} />
+                  <InputNumber
+                    min={0}
+                    step={0.01}
+                    placeholder="Precio"
+                    style={{ width: '100%' }}
+                  />
                 </Form.Item>
-                <Button danger onClick={() => remove(name)}>
+
+                {/* Eliminar */}
+                <Button
+                  danger
+                  onClick={() => remove(name)}
+                  type="link"
+                >
                   Eliminar
                 </Button>
               </div>
             ))}
-            <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+
+            <Button
+              type="dashed"
+              onClick={() => add()}
+              block
+              icon={<PlusOutlined />}
+            >
               Agregar material
             </Button>
           </>
         )}
       </Form.List>
 
-      <Form.Item
-        name="fecha_orden"
-        label="Fecha de Orden"
-        rules={[{ required: true, message: 'Por favor seleccione la fecha de orden' }]}
-      >
-        <DatePicker style={{ width: '100%' }} />
-      </Form.Item>
-
+      {/* Fecha esperada */}
       <Form.Item
         name="fecha_entrega_esperada"
         label="Fecha de Entrega Esperada"
-        rules={[{ required: true, message: 'Por favor seleccione la fecha de entrega esperada' }]}
+        rules={[{ required: true, message: 'Seleccione la fecha de entrega esperada' }]}
       >
-        <DatePicker style={{ width: '100%' }} />
+        <DatePicker
+          placeholder="Seleccionar fecha"
+          style={{ width: '100%' }}
+          format="DD/MM/YYYY"
+        />
       </Form.Item>
 
+      {/* Observaciones */}
       <Form.Item
         name="observaciones"
         label="Observaciones"
       >
-        <Input.TextArea rows={3} />
+        <Input.TextArea
+          rows={3}
+          placeholder="Observaciones adicionales, notas internas, etc."
+        />
       </Form.Item>
     </Form>
+
   );
 };
 
@@ -366,6 +399,13 @@ export default function ComprasList() {
   const handleCreate = () => {
     setEditingCompra(null);
     form.resetFields();
+    // Limpiar explícitamente todos los campos
+    form.setFieldsValue({
+      proveedor_id: undefined,
+      materiales: [],
+      fecha_entrega_esperada: null,
+      observaciones: undefined,
+    });
     setModalVisible(true);
   };
 
@@ -376,16 +416,21 @@ export default function ComprasList() {
       return;
     }
     setEditingCompra(compra);
+
     // Transformar los datos de la compra al formato del formulario
+    // El backend devuelve 'materiales' pero el formulario espera 'materiales'
     const materialesForm = compra.materiales?.map(material => ({
       material_id: material.material_id,
       cantidad: material.cantidad,
       precio_unitario: material.precio_unitario
     })) || [];
+
+    console.log('Datos de la compra para editar:', compra); // Debug
+    console.log('Materiales formateados:', materialesForm); // Debug
+
     form.setFieldsValue({
       proveedor_id: compra.proveedor_id,
       materiales: materialesForm,
-      fecha_orden: compra.fecha_compra ? dayjs(compra.fecha_compra) : null,
       fecha_entrega_esperada: compra.fecha_estimada_llegada ? dayjs(compra.fecha_estimada_llegada) : null,
       observaciones: compra.observaciones,
     });
@@ -446,6 +491,13 @@ export default function ComprasList() {
     setModalVisible(false);
     setEditingCompra(null);
     form.resetFields();
+    // Limpiar explícitamente todos los campos
+    form.setFieldsValue({
+      proveedor_id: undefined,
+      materiales: [],
+      fecha_entrega_esperada: null,
+      observaciones: undefined,
+    });
   };
 
   const handleModalOk = async (values) => {
@@ -458,18 +510,21 @@ export default function ComprasList() {
         toast.error('Solo se pueden editar compras con estado "pendiente"');
         return;
       }
+
       // Transformar los datos al formato que espera el backend
       const compraData = {
         proveedor_id: values.proveedor_id,
-        materiales: values.materiales?.map(material => ({
+        detalles: values.materiales?.map(material => ({
           material_id: material.material_id,
           cantidad: material.cantidad,
           precio_unitario: material.precio_unitario
         })) || [],
-        fecha_compra: values.fecha_orden ? values.fecha_orden.toISOString() : null,
-        fecha_estimada_llegada: values.fecha_entrega_esperada ? values.fecha_entrega_esperada.toISOString() : null,
+        fecha_estimada_llegada: values.fecha_entrega_esperada ? values.fecha_entrega_esperada.toISOString().split('T')[0] : null,
         observaciones: values.observaciones,
       };
+
+      console.log('Datos a enviar:', compraData); // Debug
+
       if (editingCompra) {
         await updateCompra(editingCompra.compra_id, compraData);
         toast.success('Compra actualizada exitosamente');
@@ -480,6 +535,13 @@ export default function ComprasList() {
       setModalVisible(false);
       setEditingCompra(null);
       form.resetFields();
+      // Limpiar explícitamente todos los campos después de guardar
+      form.setFieldsValue({
+        proveedor_id: undefined,
+        materiales: [],
+        fecha_entrega_esperada: null,
+        observaciones: undefined,
+      });
       refetch();
     } catch (error) {
       toast.error(error.message || 'Error al procesar la solicitud');
@@ -535,7 +597,7 @@ export default function ComprasList() {
       key: 'total_compra',
       header: 'Total Compra',
       render: (row) => {
-        const total = row.materiales?.reduce((sum, material) => 
+        const total = row.materiales?.reduce((sum, material) =>
           sum + (material.cantidad * material.precio_unitario), 0
         ) || 0;
         return `S/ ${total.toFixed(2)}`;
@@ -573,41 +635,43 @@ export default function ComprasList() {
     const canChangeState = !['anulada', 'cancelado', 'recibido'].includes(row.estado);
 
     return (
-      <div className="space-x-2">
+      <div className="flex flex-wrap gap-2">
         {canEdit && (
           <Button
             type="primary"
             icon={<EditOutlined />}
             onClick={() => handleEdit(row)}
-            size="small"
           >
             Editar
           </Button>
         )}
+
         {canChangeState && (
           <Button
             icon={<EyeOutlined />}
+            type="default"
             onClick={() => handleEstadoChange(row)}
-            size="small"
           >
             Estado
           </Button>
         )}
+
         {canDelete && (
           <Button
             type="primary"
             danger
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(row)}
-            size="small"
           >
             Eliminar
           </Button>
         )}
+
         {!canEdit && !canDelete && !canChangeState && (
           <span className="text-gray-500 text-sm">Solo lectura</span>
         )}
       </div>
+
     );
   };
 
@@ -649,6 +713,9 @@ export default function ComprasList() {
           Nueva Compra
         </Button>
       </div>
+
+      {/* Resumen Ejecutivo */}
+      <ComprasExecutiveSummary />
       {/* Filtros */}
       <div className="flex gap-2 flex-wrap mb-2 items-center">
         <Select
@@ -770,7 +837,7 @@ export default function ComprasList() {
         open={proveedorModalVisible}
         onCancel={() => setProveedorModalVisible(false)}
         footer={null}
-         destroyOnHidden
+        destroyOnHidden
       >
         <ProveedorForm
           onFinish={async (values) => {
@@ -792,7 +859,7 @@ export default function ComprasList() {
         open={materialModalVisible}
         onCancel={() => setMaterialModalVisible(false)}
         footer={null}
-         destroyOnHidden
+        destroyOnHidden
       >
         <MaterialForm
           onFinish={async (values) => {

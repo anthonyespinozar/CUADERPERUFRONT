@@ -99,7 +99,7 @@ export default function MaterialComprasModal({ open, onClose, material }) {
         columns={columns}
         dataSource={comprasMaterial}
         loading={isLoading}
-        rowKey="id"
+        rowKey="compra_id"
         pagination={{
           pageSize: 10,
           showSizeChanger: true,

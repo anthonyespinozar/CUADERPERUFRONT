@@ -7,14 +7,6 @@ export const useMateriales = () => {
     queryFn: getAllMateriales,
   });
 
-  // Log para debugging
-  /*nsole.log('=== HOOK MATERIALES ===');
-  console.log('Data:', data);
-  console.log('Loading:', isLoading);
-  console.log('Error:', isError);
-  console.log('Fetching:', isFetching);
-  */
-
   return {
     data,
     isLoading,

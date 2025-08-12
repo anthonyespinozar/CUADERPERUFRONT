@@ -8,6 +8,7 @@ import { DataTable } from '@/components/tables/DataTable';
 import { createMateriales, updateMateriales, toggleMaterialStatus, deleteMateriales } from '@/services/materialesService';
 import { toast } from 'sonner';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
+import { MaterialesExecutiveSummary } from './MaterialesExecutiveSummary';
 import MaterialComprasModal from '@/components/compras/MaterialComprasModal';
 
 const { Option } = Select;
@@ -19,13 +20,15 @@ const MaterialForm = ({ form, initialValues, onFinish, onCancel }) => {
       layout="vertical"
       initialValues={initialValues}
       onFinish={onFinish}
+      className="pt-2"
     >
+      {/* DATOS BÁSICOS */}
       <Form.Item
         name="nombre"
         label="Nombre del Material"
         rules={[{ required: true, message: 'Por favor ingrese el nombre del material' }]}
       >
-        <Input />
+        <Input placeholder="Ej. Papel Bond 75g" />
       </Form.Item>
 
       <Form.Item
@@ -33,7 +36,7 @@ const MaterialForm = ({ form, initialValues, onFinish, onCancel }) => {
         label="Tipo de Material"
         rules={[{ required: true, message: 'Por favor seleccione el tipo de material' }]}
       >
-        <Select>
+        <Select placeholder="Seleccione un tipo">
           <Option value="papel">Papel</Option>
           <Option value="cartón">Cartón</Option>
           <Option value="tinta">Tinta</Option>
@@ -47,63 +50,69 @@ const MaterialForm = ({ form, initialValues, onFinish, onCancel }) => {
         label="Descripción"
         rules={[{ required: true, message: 'Por favor ingrese una descripción' }]}
       >
-        <Input.TextArea rows={4} />
+        <Input.TextArea placeholder="Describe brevemente el material..." rows={4} />
       </Form.Item>
 
-      <Form.Item
-        name="stock_actual"
-        label="Stock Actual"
-        rules={[{ required: true, message: 'Por favor ingrese el stock actual' }]}
-      >
-        <InputNumber min={0} style={{ width: '100%' }} />
-      </Form.Item>
+      {/* STOCK */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Form.Item
+          name="stock_actual"
+          label="Stock Actual"
+          rules={[{ required: true, message: 'Ingrese el stock actual' }]}
+        >
+          <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
+        </Form.Item>
 
-      <Form.Item
-        name="stock_minimo"
-        label="Stock Mínimo"
-        rules={[{ required: true, message: 'Por favor ingrese el stock mínimo' }]}
-      >
-        <InputNumber min={0} style={{ width: '100%' }} />
-      </Form.Item>
+        <Form.Item
+          name="stock_minimo"
+          label="Stock Mínimo"
+          rules={[{ required: true, message: 'Ingrese el stock mínimo' }]}
+        >
+          <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
+        </Form.Item>
 
-      <Form.Item
-        name="stock_maximo"
-        label="Stock Máximo"
-        rules={[{ required: true, message: 'Por favor ingrese el stock máximo' }]}
-      >
-        <InputNumber min={0} style={{ width: '100%' }} />
-      </Form.Item>
+        <Form.Item
+          name="stock_maximo"
+          label="Stock Máximo"
+          rules={[{ required: true, message: 'Ingrese el stock máximo' }]}
+        >
+          <InputNumber min={0} style={{ width: '100%' }} placeholder="0" />
+        </Form.Item>
+      </div>
 
-      <Form.Item
-        name="unidad_medida"
-        label="Unidad de Medida"
-        rules={[{ required: true, message: 'Por favor seleccione la unidad de medida' }]}
-      >
-        <Select>
-          <Option value="unidad">Unidad</Option>
-          <Option value="resmas">Resmas</Option>
-          <Option value="planchas">Planchas</Option>
-          <Option value="kg">Kilogramos</Option>
-          <Option value="g">Gramos</Option>
-          <Option value="l">Litros</Option>
-          <Option value="ml">Mililitros</Option>
-          <Option value="m">Metros</Option>
-          <Option value="cm">Centímetros</Option>
-        </Select>
-      </Form.Item>
+      {/* UNIDAD Y ESTADO */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Form.Item
+          name="unidad_medida"
+          label="Unidad de Medida"
+          rules={[{ required: true, message: 'Seleccione la unidad de medida' }]}
+        >
+          <Select placeholder="Seleccione unidad">
+            <Option value="unidad">Unidad</Option>
+            <Option value="resmas">Resmas</Option>
+            <Option value="planchas">Planchas</Option>
+            <Option value="kg">Kilogramos</Option>
+            <Option value="g">Gramos</Option>
+            <Option value="l">Litros</Option>
+            <Option value="ml">Mililitros</Option>
+            <Option value="m">Metros</Option>
+            <Option value="cm">Centímetros</Option>
+          </Select>
+        </Form.Item>
 
-      <Form.Item
-        name="estado"
-        label="Estado"
-        rules={[{ required: true, message: 'Por favor seleccione el estado' }]}
-        valuePropName="checked"
-      >
-        <Select>
-          <Option value={true}>Activo</Option>
-          <Option value={false}>Inactivo</Option>
-        </Select>
-      </Form.Item>
+        <Form.Item
+          name="estado"
+          label="Estado del Material"
+          rules={[{ required: true, message: 'Seleccione el estado' }]}
+        >
+          <Select placeholder="Seleccionar estado">
+            <Option value={true}>Activo</Option>
+            <Option value={false}>Inactivo</Option>
+          </Select>
+        </Form.Item>
+      </div>
     </Form>
+
   );
 };
 
@@ -152,6 +161,17 @@ export default function MaterialesList() {
   const handleCreate = () => {
     setEditingMaterial(null);
     form.resetFields();
+    // Limpiar explícitamente todos los campos
+    form.setFieldsValue({
+      nombre: undefined,
+      tipo: undefined,
+      descripcion: undefined,
+      stock_actual: undefined,
+      stock_minimo: undefined,
+      stock_maximo: undefined,
+      unidad_medida: undefined,
+      estado: true, // Por defecto activo para nuevos materiales
+    });
     setModalVisible(true);
   };
 
@@ -218,7 +238,19 @@ export default function MaterialesList() {
         toast.success('Material creado exitosamente');
       }
       setModalVisible(false);
+      setEditingMaterial(null);
       form.resetFields();
+      // Limpiar explícitamente todos los campos después de guardar
+      form.setFieldsValue({
+        nombre: undefined,
+        tipo: undefined,
+        descripcion: undefined,
+        stock_actual: undefined,
+        stock_minimo: undefined,
+        stock_maximo: undefined,
+        unidad_medida: undefined,
+        estado: true,
+      });
       refetch();
     } catch (error) {
       toast.error(error.message || 'Error al procesar la solicitud');
@@ -231,6 +263,11 @@ export default function MaterialesList() {
   };
 
   const columns = [
+    {
+      key: 'material_id',
+      header: 'ID',
+      render: (row) => `#${row.id}`
+    },
     {
       key: 'nombre',
       header: 'Nombre',
@@ -257,13 +294,12 @@ export default function MaterialesList() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="font-medium">Actual:</span>
-            <span className={`${
-              row.stock_actual <= row.stock_minimo 
-                ? 'text-red-600 font-medium' 
-                : row.stock_actual >= row.stock_maximo 
+            <span className={`${row.stock_actual <= row.stock_minimo
+                ? 'text-red-600 font-medium'
+                : row.stock_actual >= row.stock_maximo
                   ? 'text-orange-600 font-medium'
                   : 'text-green-600'
-            }`}>
+              }`}>
               {row.stock_actual} {row.unidad_medida}
             </span>
           </div>
@@ -274,13 +310,12 @@ export default function MaterialesList() {
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1.5">
             <div
-              className={`h-1.5 rounded-full ${
-                row.stock_actual <= row.stock_minimo 
-                  ? 'bg-red-500' 
-                  : row.stock_actual >= row.stock_maximo 
+              className={`h-1.5 rounded-full ${row.stock_actual <= row.stock_minimo
+                  ? 'bg-red-500'
+                  : row.stock_actual >= row.stock_maximo
                     ? 'bg-orange-500'
                     : 'bg-green-500'
-              }`}
+                }`}
               style={{
                 width: `${Math.min(100, (row.stock_actual / row.stock_maximo) * 100)}%`
               }}
@@ -352,7 +387,7 @@ export default function MaterialesList() {
   ];
 
   const renderActions = (row) => (
-    <div className="space-x-2">
+    <div className="flex flex-wrap gap-2">
       <Button
         type="primary"
         icon={<EditOutlined />}
@@ -360,13 +395,14 @@ export default function MaterialesList() {
       >
         Editar
       </Button>
+
       <Button
         icon={<ShoppingCartOutlined />}
         onClick={() => handleViewCompras(row)}
-        size="small"
       >
         Compras
       </Button>
+
       {!row.estado && (
         <Button
           type="primary"
@@ -378,6 +414,7 @@ export default function MaterialesList() {
         </Button>
       )}
     </div>
+
   );
 
   // Chips de filtros activos
@@ -399,7 +436,7 @@ export default function MaterialesList() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Gestión de Materiales</h1>
+        <h1 className="text-2xl font-semibold">Gestión de Inventario</h1>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -408,6 +445,9 @@ export default function MaterialesList() {
           Nuevo Material
         </Button>
       </div>
+
+      {/* Resumen Ejecutivo */}
+      <MaterialesExecutiveSummary />
 
       <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow-sm flex-wrap gap-2">
         <Segmented
@@ -480,7 +520,22 @@ export default function MaterialesList() {
         title={editingMaterial ? 'Editar Material' : 'Nuevo Material'}
         open={modalVisible}
         onOk={form.submit}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => {
+          setModalVisible(false);
+          setEditingMaterial(null);
+          form.resetFields();
+          // Limpiar explícitamente todos los campos al cancelar
+          form.setFieldsValue({
+            nombre: undefined,
+            tipo: undefined,
+            descripcion: undefined,
+            stock_actual: undefined,
+            stock_minimo: undefined,
+            stock_maximo: undefined,
+            unidad_medida: undefined,
+            estado: true,
+          });
+        }}
         width={600}
       >
         <MaterialForm

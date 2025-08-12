@@ -116,6 +116,13 @@ export default function UserList() {
   const handleCreate = () => {
     setEditingUser(null);
     form.resetFields();
+    // Limpiar explícitamente todos los campos
+    form.setFieldsValue({
+      nombre: undefined,
+      correo: undefined,
+      rol: undefined,
+      password: undefined,
+    });
     setModalVisible(true);
   };
 
@@ -140,7 +147,15 @@ export default function UserList() {
         toast.success('Usuario creado exitosamente');
       }
       setModalVisible(false);
+      setEditingUser(null);
       form.resetFields();
+      // Limpiar explícitamente todos los campos después de guardar
+      form.setFieldsValue({
+        nombre: undefined,
+        correo: undefined,
+        rol: undefined,
+        password: undefined,
+      });
       refetch();
     } catch (error) {
       toast.error(error.message || 'Error al procesar la solicitud');
@@ -277,13 +292,35 @@ export default function UserList() {
         title={editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}
         open={modalVisible}
         onOk={form.submit}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => {
+          setModalVisible(false);
+          setEditingUser(null);
+          form.resetFields();
+          // Limpiar explícitamente todos los campos al cancelar
+          form.setFieldsValue({
+            nombre: undefined,
+            correo: undefined,
+            rol: undefined,
+            password: undefined,
+          });
+        }}
       >
         <UserForm
           form={form}
           initialValues={editingUser}
           onFinish={handleModalOk}
-          onCancel={() => setModalVisible(false)}
+          onCancel={() => {
+            setModalVisible(false);
+            setEditingUser(null);
+            form.resetFields();
+            // Limpiar explícitamente todos los campos al cancelar
+            form.setFieldsValue({
+              nombre: undefined,
+              correo: undefined,
+              rol: undefined,
+              password: undefined,
+            });
+          }}
         />
       </Modal>
     </div>

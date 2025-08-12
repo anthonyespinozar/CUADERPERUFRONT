@@ -88,124 +88,127 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <div className="flex justify-center">
-            <Image
-              src="/logo.png"
-              alt="CuaderPeru Logo"
-              width={150}
-              height={150}
-              className="mx-auto"
-            />
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-            Iniciar Sesión
-          </h2>
-        </div>
+<div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 px-4 py-12 sm:px-6 lg:px-8">
+  <div className="w-full max-w-md space-y-8">
+    <div className="flex flex-col items-center">
+      <Image
+        src="/logo.png"
+        alt="CuaderPeru Logo"
+        width={120}
+        height={120}
+        className="rounded-full shadow-md"
+      />
+      <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Bienvenido a CuaderPerú
+      </h2>
+      <p className="mt-1 text-center text-sm text-gray-600">
+        Ingresa tus credenciales para continuar
+      </p>
+    </div>
 
-        <div className="mt-8">
-          <div className="rounded-md bg-white p-6 shadow">
-            {errors.general && (
-              <div className="mb-4 rounded-md bg-red-50 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <ExclamationCircleIcon className="h-5 w-5 text-red-400" aria-hidden="true" />
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">{errors.general}</h3>
-                  </div>
-                </div>
+    <div className="rounded-xl bg-white p-8 shadow-lg">
+      {errors.general && (
+        <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+          <div className="flex items-center gap-2">
+            <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
+            <span>{errors.general}</span>
+          </div>
+        </div>
+      )}
+
+      <form className="space-y-6" onSubmit={handleSubmit}>
+        {/* Correo */}
+        <div>
+          <label htmlFor="correo" className="block text-sm font-medium text-gray-700">
+            Correo Electrónico
+          </label>
+          <div className="relative mt-1">
+            <input
+              id="correo"
+              name="correo"
+              type="email"
+              autoComplete="email"
+              required
+              value={formData.correo}
+              onChange={handleChange}
+              className={`block w-full rounded-md border px-3 py-2 shadow-sm sm:text-sm transition focus:outline-none ${
+                errors.correo
+                  ? 'border-red-500 text-red-900 placeholder-red-400 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+              }`}
+              placeholder="ejemplo@correo.com"
+            />
+            {errors.correo && (
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
               </div>
             )}
-
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div>
-                <label htmlFor="correo" className="block text-sm font-medium text-gray-700">
-                  Correo Electrónico
-                </label>
-                <div className="relative mt-1">
-                  <input
-                    id="correo"
-                    name="correo"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={formData.correo}
-                    onChange={handleChange}
-                    className={`block w-full rounded-md pr-10 ${
-                      errors.correo
-                        ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
-                    } shadow-sm sm:text-sm`}
-                  />
-                  {errors.correo && (
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                      <ExclamationCircleIcon className="h-5 w-5 text-red-500" aria-hidden="true" />
-                    </div>
-                  )}
-                </div>
-                {errors.correo && (
-                  <p className="mt-2 text-sm text-red-600">{errors.correo}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Contraseña
-                </label>
-                <div className="relative mt-1">
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={`block w-full rounded-md pr-10 ${
-                      errors.password
-                        ? 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
-                    } shadow-sm sm:text-sm`}
-                  />
-                  {errors.password && (
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                      <ExclamationCircleIcon className="h-5 w-5 text-red-500" aria-hidden="true" />
-                    </div>
-                  )}
-                </div>
-                {errors.password && (
-                  <p className="mt-2 text-sm text-red-600">{errors.password}</p>
-                )}
-              </div>
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className={`flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm 
-                    ${isLoading 
-                      ? 'bg-indigo-400 cursor-not-allowed' 
-                      : 'bg-indigo-600 hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
-                    }`}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Iniciando sesión...
-                    </div>
-                  ) : 'Iniciar Sesión'}
-                </button>
-              </div>
-            </form>
           </div>
+          {errors.correo && (
+            <p className="mt-2 text-sm text-red-600">{errors.correo}</p>
+          )}
         </div>
-      </div>
+
+        {/* Contraseña */}
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            Contraseña
+          </label>
+          <div className="relative mt-1">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              className={`block w-full rounded-md border px-3 py-2 shadow-sm sm:text-sm transition focus:outline-none ${
+                errors.password
+                  ? 'border-red-500 text-red-900 placeholder-red-400 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+              }`}
+              placeholder="********"
+            />
+            {errors.password && (
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
+              </div>
+            )}
+          </div>
+          {errors.password && (
+            <p className="mt-2 text-sm text-red-600">{errors.password}</p>
+          )}
+        </div>
+
+        {/* Botón */}
+        <div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`flex w-full items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white shadow-md transition duration-150 ease-in-out 
+              ${isLoading 
+                ? 'bg-indigo-400 cursor-not-allowed' 
+                : 'bg-indigo-600 hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+              }`}
+          >
+            {isLoading ? (
+              <>
+                <svg className="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Iniciando...
+              </>
+            ) : (
+              'Iniciar Sesión'
+            )}
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
+</div>
+
   );
 } 

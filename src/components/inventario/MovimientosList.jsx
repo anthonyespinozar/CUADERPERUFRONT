@@ -7,16 +7,18 @@ import { useMateriales } from '@/hooks/useMateriales';
 import MovimientoForm from './MovimientoForm';
 import { DataTable } from '@/components/tables/DataTable';
 import dayjs from 'dayjs';
-import { DeleteOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import { toast } from 'sonner';
 import { deleteMovimiento } from '@/services/movimientosService';
+import { useQueryClient } from '@tanstack/react-query';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
 export default function MovimientosList() {
   const [formVisible, setFormVisible] = useState(false);
+  const [editingMovimiento, setEditingMovimiento] = useState(null);
   const [filters, setFilters] = useState({
     tipo_movimiento: undefined,
     material_id: undefined,
@@ -24,43 +26,51 @@ export default function MovimientosList() {
     fecha_fin: undefined,
     descripcion: undefined,
   });
-  const { data: allMovimientos, isLoading, refetch } = useMovimientos();
+
+  const queryClient = useQueryClient();
+
+  const { data: allMovimientos, isLoading } = useMovimientos();
   const { data: materiales } = useMateriales();
 
   // Filtros locales (solo frontend)
   const filteredData = (allMovimientos || []).filter((mov) => {
-    // Filtro por tipo
     if (filters.tipo_movimiento && mov.tipo_movimiento !== filters.tipo_movimiento) return false;
-    // Filtro por material
     if (filters.material_id && mov.material_id !== filters.material_id) return false;
-    // Filtro por fecha inicio
     if (filters.fecha_inicio && dayjs(mov.fecha_movimiento).isBefore(filters.fecha_inicio, 'day')) return false;
-    // Filtro por fecha fin
     if (filters.fecha_fin && dayjs(mov.fecha_movimiento).isAfter(filters.fecha_fin, 'day')) return false;
-    // Filtro por descripción
     if (filters.descripcion && !mov.descripcion?.toLowerCase().includes(filters.descripcion.toLowerCase())) return false;
     return true;
   });
 
+  const refreshData = () => {
+    queryClient.invalidateQueries(['movimientos']);
+    queryClient.invalidateQueries(['materiales']);
+  };
+
+  const handleEdit = (row) => {
+    setEditingMovimiento(row);
+    setFormVisible(true);
+  };
+
   const handleDelete = (row) => {
     ConfirmationModal.confirm({
       title: 'Eliminar Movimiento',
-      content: (
-        <div>
-          ¿Seguro que deseas eliminar el movimiento #{row.id}?
-        </div>
-      ),
+      content: <div>¿Seguro que deseas eliminar el movimiento #{row.id}?</div>,
       onOk: async () => {
         try {
           await deleteMovimiento(row.id);
           toast.success('Movimiento eliminado');
-          refetch();
+          refreshData();
         } catch (e) {
           toast.error(e.message || 'Error al eliminar');
         }
       }
-      // Puedes agregar onCancel si necesitas lógica extra al cancelar
     });
+  };
+
+  const handleFormClose = () => {
+    setFormVisible(false);
+    setEditingMovimiento(null);
   };
 
   const columns = [
@@ -72,10 +82,13 @@ export default function MovimientosList() {
     {
       key: 'tipo_movimiento',
       header: 'Tipo',
-      render: (row) =>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.tipo_movimiento === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+      render: (row) => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.tipo_movimiento === 'entrada'
+          ? 'bg-green-100 text-green-800'
+          : 'bg-red-100 text-red-800'}`}>
           {row.tipo_movimiento.charAt(0).toUpperCase() + row.tipo_movimiento.slice(1)}
         </span>
+      )
     },
     {
       key: 'material_id',
@@ -104,14 +117,14 @@ export default function MovimientosList() {
       key: 'actions',
       header: 'Acciones',
       render: (row) => (
-        <Button
-          danger
-          icon={<DeleteOutlined />}
-          size="small"
-          onClick={() => handleDelete(row)}
-        >
-          Eliminar
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="primary" icon={<EditOutlined />} onClick={() => handleEdit(row)}>
+            Editar
+          </Button>
+          <Button type="primary" danger icon={<DeleteOutlined />} onClick={() => handleDelete(row)}>
+            Eliminar
+          </Button>
+        </div>
       )
     }
   ];
@@ -124,6 +137,7 @@ export default function MovimientosList() {
           Registrar Movimiento
         </Button>
       </div>
+
       {/* Filtros */}
       <div className="flex gap-2 flex-wrap mb-2">
         <Select
@@ -152,8 +166,8 @@ export default function MovimientosList() {
           onChange={dates => {
             setFilters(f => ({
               ...f,
-              fecha_inicio: dates?.[0] ? dates[0].startOf('day') : undefined,
-              fecha_fin: dates?.[1] ? dates[1].endOf('day') : undefined,
+              fecha_inicio: dates?.[0]?.startOf('day'),
+              fecha_fin: dates?.[1]?.endOf('day'),
             }));
           }}
           value={filters.fecha_inicio && filters.fecha_fin ? [filters.fecha_inicio, filters.fecha_fin] : []}
@@ -167,16 +181,19 @@ export default function MovimientosList() {
           onChange={e => setFilters(f => ({ ...f, descripcion: e.target.value || undefined }))}
         />
       </div>
+
       <DataTable
         columns={columns}
         data={filteredData}
         isLoading={isLoading}
         pageSize={10}
       />
+
       <MovimientoForm
         open={formVisible}
-        onClose={() => setFormVisible(false)}
-        onSuccess={refetch}
+        onClose={handleFormClose}
+        onSuccess={refreshData}
+        editingMovimiento={editingMovimiento}
       />
     </div>
   );

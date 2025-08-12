@@ -1,8 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getAllOrdenesProduccion,
   getOrdenProduccionById,
   getMaterialesPorOrden,
+  createOrdenProduccion,
+  updateOrdenProduccion,
+  deleteOrdenProduccion,
 } from "@/services/ordenesProduccionService";
 
 /**
@@ -21,6 +24,48 @@ export const useOrdenesProduccion = () => {
     isFetching,
     refetch,
   };
+};
+
+/**
+ * Hook para crear una nueva orden de producción
+ */
+export const useCreateOrdenProduccion = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (orden) => createOrdenProduccion(orden),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ordenes-produccion"] });
+    },
+  });
+};
+
+/**
+ * Hook para actualizar una orden de producción
+ */
+export const useUpdateOrdenProduccion = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ id, orden }) => updateOrdenProduccion(id, orden),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ordenes-produccion"] });
+    },
+  });
+};
+
+/**
+ * Hook para eliminar una orden de producción
+ */
+export const useDeleteOrdenProduccion = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id) => deleteOrdenProduccion(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ordenes-produccion"] });
+    },
+  });
 };
 
 /**

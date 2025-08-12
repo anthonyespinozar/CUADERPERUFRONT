@@ -1,17 +1,23 @@
 import { useState, useMemo } from "react";
-import { useProducciones } from "@/hooks/useProducciones";
+import { useProducciones, useEditarProduccion, useEliminarProduccion } from "@/hooks/useProducciones";
 import { useOrdenesProduccion } from "@/hooks/useOrdenesProduccion";
-import { Table, Button, Tag, DatePicker, Input, Select, Modal } from "antd";
+import { Table, Button, Tag, DatePicker, Input, Select, Modal, Form, InputNumber } from "antd";
 import { EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { toast } from "sonner";
-import { editarProduccion, eliminarProduccion } from "@/services/produccionesService";
-
+import { BaseForm } from "@/components/forms/BaseForm";
 const { RangePicker } = DatePicker;
 
 export default function ProduccionesRealizadasList() {
-  const { data: producciones, isLoading, refetch } = useProducciones();
+  const { data: producciones, isLoading } = useProducciones();
   const { data: ordenesRaw } = useOrdenesProduccion();
+  const [form] = Form.useForm();
+
+
+  // Hooks de mutación
+  const editarMutation = useEditarProduccion();
+  const eliminarMutation = useEliminarProduccion();
+
   // Mapea ordenes para lookup rápido
   const ordenes = useMemo(() => {
     return (ordenesRaw || []).map(item => ({ ...item.ordenData, _obj: item }));
@@ -90,11 +96,36 @@ export default function ProduccionesRealizadasList() {
       title: 'Acciones',
       key: 'acciones',
       render: (_, row) => (
-        <div className="space-x-2">
-          <Button icon={<EyeOutlined />} size="small" onClick={() => setModalEdit({ ...row, view: true })}>Ver</Button>
-          <Button icon={<EditOutlined />} size="small" onClick={() => setModalEdit(row)}>Editar</Button>
-          <Button icon={<DeleteOutlined />} size="small" danger onClick={() => handleEliminar(row)}>Eliminar</Button>
+        <div className="flex flex-wrap gap-2">
+          {/* Botón Ver - neutro */}
+          <Button
+            icon={<EyeOutlined />}
+            type="default"
+            onClick={() => setModalEdit({ ...row, view: true })}
+          >
+            Ver
+          </Button>
+
+          {/* Botón Editar - azul (primario) */}
+          <Button
+            icon={<EditOutlined />}
+            type="primary"
+            onClick={() => setModalEdit(row)}
+          >
+            Editar
+          </Button>
+
+          {/* Botón Eliminar - rojo */}
+          <Button
+            icon={<DeleteOutlined />}
+            type="primary"
+            danger
+            onClick={() => handleEliminar(row)}
+          >
+            Eliminar
+          </Button>
         </div>
+
       )
     }
   ];
@@ -106,9 +137,8 @@ export default function ProduccionesRealizadasList() {
       content: `¿Está seguro que desea eliminar este registro de producción?`,
       async onOk() {
         try {
-          await eliminarProduccion(row.id);
+          await eliminarMutation.mutateAsync(row.id);
           toast.success('Producción eliminada correctamente');
-          refetch();
         } catch (error) {
           toast.error(error.message || 'Error al eliminar producción');
         }
@@ -119,10 +149,12 @@ export default function ProduccionesRealizadasList() {
   // Editar (modal simple)
   const handleEditSubmit = async (values) => {
     try {
-      await editarProduccion(modalEdit.id, values.cantidad_producida);
-      toast.success('Producción actualizada');
+      await editarMutation.mutateAsync({
+        produccionId: modalEdit.id,
+        produccionData: { cantidad_producida: values.cantidad_producida }
+      });
+      toast.success('Producción actualizada correctamente');
       setModalEdit(null);
-      refetch();
     } catch (error) {
       toast.error(error.message || 'Error al editar producción');
     }
@@ -130,7 +162,9 @@ export default function ProduccionesRealizadasList() {
 
   return (
     <div className="space-y-4">
+      <h1 className="text-2xl font-semibold">Producciones Realizadas</h1>
       <div className="flex flex-wrap gap-2 items-center justify-between">
+      
         <div className="flex gap-2">
           <RangePicker onChange={v => setFiltroFecha(v || [])} />
           <Select
@@ -167,42 +201,63 @@ export default function ProduccionesRealizadasList() {
       />
       {/* Modal de edición */}
       <Modal
-        open={!!modalEdit && !modalEdit?.view}
-        title="Editar Producción"
-        onCancel={() => setModalEdit(null)}
-        onOk={async () => {
-          await handleEditSubmit({ cantidad_producida: modalEdit.cantidad_producida });
-        }}
-        okText="Guardar"
-      >
-        <div className="space-y-2">
-          <div>Orden: <b>{ordenes.find(o => o.id === modalEdit?.orden_id)?.codigo}</b></div>
-          <div>Producto: <b>{ordenes.find(o => o.id === modalEdit?.orden_id)?.tipo_cuaderno}</b></div>
-          <div>
-            <label>Cantidad producida:</label>
-            <Input
-              type="number"
-              min={1}
-              value={modalEdit?.cantidad_producida}
-              onChange={e => setModalEdit(m => ({ ...m, cantidad_producida: parseInt(e.target.value) || 1 }))}
-            />
-          </div>
-        </div>
-      </Modal>
+  open={!!modalEdit && !modalEdit?.view}
+  title="Editar Producción"
+  onCancel={() => setModalEdit(null)}
+  onOk={() => form.submit()}
+  confirmLoading={editarMutation.isLoading}
+  destroyOnHidden
+  width={500}
+>
+  <div className="mb-4 p-3 bg-gray-50 rounded border text-sm text-gray-600">
+    <div><strong>Orden:</strong> {ordenes.find(o => o.id === modalEdit?.orden_id)?.codigo}</div>
+    <div><strong>Producto:</strong> {ordenes.find(o => o.id === modalEdit?.orden_id)?.tipo_cuaderno}</div>
+    <div><strong>Fecha de registro:</strong> {modalEdit?.fecha_registro ? new Date(modalEdit.fecha_registro).toLocaleString('es-PE') : '-'}</div>
+    <div><strong>Cantidad actual:</strong> {modalEdit?.cantidad_producida || 0}</div>
+  </div>
+
+  <Form
+    form={form}
+    layout="vertical"
+    initialValues={{
+      cantidad_producida: modalEdit?.cantidad_producida
+    }}
+    onFinish={handleEditSubmit}
+  >
+    <Form.Item
+      name="cantidad_producida"
+      label="Nueva cantidad producida"
+      rules={[
+        { required: true, message: 'La cantidad es obligatoria' },
+        { type: 'number', min: 1, message: 'Debe ser mayor a 0' }
+      ]}
+    >
+      <InputNumber
+        placeholder="Ej. 50"
+        min={1}
+        style={{ width: '100%' }}
+      />
+    </Form.Item>
+  </Form>
+</Modal>
+
       {/* Modal de vista */}
       <Modal
-        open={!!modalEdit && modalEdit?.view}
-        title="Detalle de Producción"
-        onCancel={() => setModalEdit(null)}
-        footer={null}
-      >
-        <div className="space-y-2">
-          <div>Orden: <b>{ordenes.find(o => o.id === modalEdit?.orden_id)?.codigo}</b></div>
-          <div>Producto: <b>{ordenes.find(o => o.id === modalEdit?.orden_id)?.tipo_cuaderno}</b></div>
-          <div>Fecha: <b>{modalEdit?.fecha_registro ? new Date(modalEdit.fecha_registro).toLocaleString('es-PE') : '-'}</b></div>
-          <div>Cantidad producida: <b>{modalEdit?.cantidad_producida}</b></div>
-        </div>
-      </Modal>
+  open={!!modalEdit && modalEdit?.view}
+  title="Detalle de Producción"
+  onCancel={() => setModalEdit(null)}
+  footer={null}
+  destroyOnHidden
+  width={500}
+>
+  <div className="space-y-3 text-sm text-gray-800">
+    <div><strong>Orden:</strong> {ordenes.find(o => o.id === modalEdit?.orden_id)?.codigo}</div>
+    <div><strong>Producto:</strong> {ordenes.find(o => o.id === modalEdit?.orden_id)?.tipo_cuaderno}</div>
+    <div><strong>Fecha:</strong> {modalEdit?.fecha_registro ? new Date(modalEdit.fecha_registro).toLocaleString('es-PE') : '-'}</div>
+    <div><strong>Cantidad producida:</strong> {modalEdit?.cantidad_producida}</div>
+  </div>
+</Modal>
+
     </div>
   );
 } 

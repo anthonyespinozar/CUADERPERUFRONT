@@ -47,6 +47,14 @@ export default function ClientesList() {
   const handleCreate = () => {
     setEditingCliente(null);
     form.resetFields();
+    // Limpiar explícitamente todos los campos
+    form.setFieldsValue({
+      nombre: undefined,
+      contacto: undefined,
+      telefono: undefined,
+      email: undefined,
+      direccion: undefined,
+    });
     setModalVisible(true);
   };
 
@@ -66,7 +74,16 @@ export default function ClientesList() {
         toast.success('Cliente creado exitosamente');
       }
       setModalVisible(false);
+      setEditingCliente(null);
       form.resetFields();
+      // Limpiar explícitamente todos los campos después de guardar
+      form.setFieldsValue({
+        nombre: undefined,
+        contacto: undefined,
+        telefono: undefined,
+        email: undefined,
+        direccion: undefined,
+      });
       refetch();
     } catch (error) {
       toast.error(error.message || 'Error al procesar la solicitud');
@@ -135,7 +152,7 @@ export default function ClientesList() {
   ];
 
   const renderActions = (row) => (
-    <div className="space-x-2">
+    <div className="flex flex-wrap gap-2">
       <Button
         type="primary"
         icon={<EditOutlined />}
@@ -143,8 +160,10 @@ export default function ClientesList() {
       >
         Editar
       </Button>
+
       {!row.estado && (
         <Button
+          type="primary"
           danger
           icon={<DeleteOutlined />}
           onClick={() => handleDelete(row)}
@@ -153,6 +172,7 @@ export default function ClientesList() {
         </Button>
       )}
     </div>
+
   );
 
   return (
@@ -209,7 +229,19 @@ export default function ClientesList() {
         title={editingCliente ? 'Editar Cliente' : 'Nuevo Cliente'}
         open={modalVisible}
         onOk={form.submit}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => {
+          setModalVisible(false);
+          setEditingCliente(null);
+          form.resetFields();
+          // Limpiar explícitamente todos los campos al cancelar
+          form.setFieldsValue({
+            nombre: undefined,
+            contacto: undefined,
+            telefono: undefined,
+            email: undefined,
+            direccion: undefined,
+          });
+        }}
         width={500}
       >
         <ClienteForm form={form} initialValues={editingCliente} onFinish={handleModalOk} />

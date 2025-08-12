@@ -48,6 +48,14 @@ export default function ProveedoresList() {
   const handleCreate = () => {
     setEditingProveedor(null);
     form.resetFields();
+    // Limpiar explícitamente todos los campos
+    form.setFieldsValue({
+      nombre: undefined,
+      contacto: undefined,
+      telefono: undefined,
+      email: undefined,
+      direccion: undefined,
+    });
     setModalVisible(true);
   };
 
@@ -104,7 +112,16 @@ export default function ProveedoresList() {
         toast.success('Proveedor creado exitosamente');
       }
       setModalVisible(false);
+      setEditingProveedor(null);
       form.resetFields();
+      // Limpiar explícitamente todos los campos después de guardar
+      form.setFieldsValue({
+        nombre: undefined,
+        contacto: undefined,
+        telefono: undefined,
+        email: undefined,
+        direccion: undefined,
+      });
       refetch();
     } catch (error) {
       toast.error(error.message || 'Error al procesar la solicitud');
@@ -132,12 +149,27 @@ export default function ProveedoresList() {
   ];
 
   const renderActions = (row) => (
-    <div className="space-x-2">
-      <Button icon={<EditOutlined />} onClick={() => handleEdit(row)} size="small">Editar</Button>
+    <div className="flex gap-2">
+      <Button
+        type="primary"
+        icon={<EditOutlined />}
+        onClick={() => handleEdit(row)}
+      >
+        Editar
+      </Button>
+
       {!row.estado && (
-        <Button icon={<DeleteOutlined />} danger onClick={() => handleDelete(row)} size="small">Eliminar</Button>
+        <Button
+          type="primary"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => handleDelete(row)}
+        >
+          Eliminar
+        </Button>
       )}
     </div>
+
   );
 
   return (
@@ -196,7 +228,19 @@ export default function ProveedoresList() {
         title={editingProveedor ? 'Editar Proveedor' : 'Nuevo Proveedor'}
         open={modalVisible}
         onOk={form.submit}
-        onCancel={() => setModalVisible(false)}
+        onCancel={() => {
+          setModalVisible(false);
+          setEditingProveedor(null);
+          form.resetFields();
+          // Limpiar explícitamente todos los campos al cancelar
+          form.setFieldsValue({
+            nombre: undefined,
+            contacto: undefined,
+            telefono: undefined,
+            email: undefined,
+            direccion: undefined,
+          });
+        }}
         width={500}
       >
         <ProveedorForm form={form} initialValues={editingProveedor} onFinish={handleModalOk} />

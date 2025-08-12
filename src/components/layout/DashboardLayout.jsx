@@ -8,13 +8,20 @@ import { Header } from './Header';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { toast } from 'sonner';
 
-// Configuración de rutas protegidas y roles permitidos
 const PROTECTED_ROUTES = {
-  '/dashboard': ['administrador', 'SUPERVISOR', 'OPERARIO'],
+  '/dashboard': ['administrador', 'usuario'],
   '/usuarios': ['administrador'],
-  '/compras': ['administrador', 'SUPERVISOR'],
-  '/inventario': ['administrador', 'SUPERVISOR'],
-  '/produccion': ['administrador', 'SUPERVISOR', 'OPERARIO']
+  '/compras': ['administrador', 'usuario'],
+  '/inventario': ['administrador', 'usuario'],
+  '/produccion': ['administrador', 'usuario'],
+  '/clientes': ['administrador', 'usuario'],
+  '/reportes': ['administrador', 'usuario'],
+  '/reportes/inventario': ['administrador', 'usuario'],
+  '/reportes/compras': ['administrador', 'usuario'],
+  '/reportes/produccion': ['administrador', 'usuario'],
+  '/reportes/movimientos': ['administrador', 'usuario'],
+  '/reportes/clientes': ['administrador', 'usuario'],
+  '/reportes/proveedores': ['administrador', 'usuario']
 };
 
 export function DashboardLayout({ children }) {
@@ -24,7 +31,6 @@ export function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Verificar autenticación
     const currentUser = authService.getUser();
     if (!authService.isAuthenticated()) {
       toast.error('Sesión no válida. Por favor, inicie sesión.');
@@ -33,14 +39,13 @@ export function DashboardLayout({ children }) {
     }
 
     setUser(currentUser);
-    
-    // Verificar permisos de ruta
+
     const allowedRoles = PROTECTED_ROUTES[pathname];
     if (allowedRoles && !allowedRoles.includes(currentUser?.rol)) {
       toast.error('No tienes permisos para acceder a esta página');
       router.push('/dashboard');
     }
-    
+
     setIsLoading(false);
   }, [router, pathname]);
 
@@ -55,14 +60,16 @@ export function DashboardLayout({ children }) {
   return (
     <div className="flex h-screen bg-gray-100">
       <Sidebar user={user} />
-      <div className="flex flex-1 flex-col">
+
+      <div className="flex flex-1 flex-col overflow-hidden">
         <Header user={user} />
-        <main className="flex-1 overflow-auto p-8">
-          <div className="mx-auto max-w-7xl">
+        
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+          <div className="min-w-full">
             {children}
           </div>
         </main>
       </div>
     </div>
   );
-} 
+}

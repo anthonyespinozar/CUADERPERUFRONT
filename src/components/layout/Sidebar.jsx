@@ -29,7 +29,7 @@ const navigation = [
     icon: CubeIcon,
     roles: ['administrador', 'usuario'],
     submenu: [
-      { name: 'Materias Primas', href: '/inventario/materias-primas' },
+      //{ name: 'Materias Primas', href: '/inventario/materias-primas' },
       { name: 'Movimientos', href: '/inventario/movimientos' },
     ]
   },
@@ -39,26 +39,27 @@ const navigation = [
     icon: ShoppingCartIcon,
     roles: ['administrador', 'usuario'],
     submenu: [
-      { name: 'Órdenes de Compra', href: '/compras/ordenes' },
+      //{ name: 'Órdenes de Compra', href: '/compras/ordenes' },
       { name: 'Historial', href: '/compras/historial' },
     ]
   },
 
-  {
-    name: 'Proveedores',
-    href: '/proveedores',
-    icon: BuildingStorefrontIcon,
-    roles: ['administrador', 'usuario'],
-  },
   {
     name: 'Producción',
     href: '/produccion',
     icon: ClipboardDocumentListIcon,
     roles: ['administrador', 'usuario'],
     submenu: [
-      { name: 'Órdenes de Producción', href: '/produccion/ordenes' },
+      //{ name: 'Órdenes de Producción', href: '/produccion/ordenes' },
       { name: 'Producciones Realizadas', href: '/produccion/historial' },
     ]
+  },
+  
+  {
+    name: 'Proveedores',
+    href: '/proveedores',
+    icon: BuildingStorefrontIcon,
+    roles: ['administrador', 'usuario'],
   },
   {
     name: 'Clientes',
@@ -75,6 +76,9 @@ const navigation = [
       { name: 'Inventario', href: '/reportes/inventario' },
       { name: 'Compras', href: '/reportes/compras' },
       { name: 'Producción', href: '/reportes/produccion' },
+      { name: 'Movimientos', href: '/reportes/movimientos' },
+      { name: 'Clientes', href: '/reportes/clientes' },
+      { name: 'Proveedores', href: '/reportes/proveedores' }, 
     ]
   },
   { 

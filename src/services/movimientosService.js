@@ -1,6 +1,6 @@
 // src/services/movimientosService.js
 
-import { makeGetRequest, makePostRequest, makeDeleteRequest } from '@/utils/api';
+import { makeGetRequest, makePostRequest, makeDeleteRequest, makePutRequest } from '@/utils/api';
 
 /**
  * Obtener todos los movimientos de inventario
@@ -39,6 +39,21 @@ export async function deleteMovimiento(id) {
     return response.message;
   } catch (e) {
     console.error("Error al eliminar movimiento:", e);
+    throw e;
+  }
+}
+
+/**
+ * Editar un movimiento de inventario por ID
+ * @param {number|string} id - ID del movimiento
+ * @param {Object} movimientoData - Datos del movimiento
+ */
+export async function editMovimiento(id, movimientoData) {
+  try {
+    const response = await makePutRequest(`/api/movimientos/${id}`, movimientoData);
+    return response.movimiento;
+  } catch (e) {
+    console.error("Error al editar movimiento:", e);
     throw e;
   }
 }
