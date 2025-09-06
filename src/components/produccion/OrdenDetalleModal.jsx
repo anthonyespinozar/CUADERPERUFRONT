@@ -1,4 +1,4 @@
-import { Modal, Table, Tag, Progress, Button } from "antd";
+import { Modal, Table, Tag, Progress, Button, Form, InputNumber, Input, DatePicker } from "antd";
 import { useEffect, useState } from "react";
 import { useOrdenProduccionById, useMaterialesPorOrden } from "@/hooks/useOrdenesProduccion";
 import { useProducciones, useFinalizarProduccion, useEliminarProduccion, useEditarProduccion } from "@/hooks/useProducciones";
@@ -6,7 +6,7 @@ import { CheckCircleOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from 
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
 import { toast } from "sonner";
 import { useMateriales } from "@/hooks/useMateriales";
-import { BaseForm } from "@/components/forms/BaseForm";
+import dayjs from "dayjs";
 
 export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrarProduccion }) {
   const orden = ordenObj?.ordenData;
@@ -14,6 +14,7 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
   const { data: producciones, isLoading: loadingProd } = useProducciones();
   const { data: materialesData } = useMateriales();
   const [modalEditProduccion, setModalEditProduccion] = useState(null);
+  const [formEdit] = Form.useForm();
   
   // Hooks de mutación
   const finalizarMutation = useFinalizarProduccion();
@@ -73,6 +74,20 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
   const prodColumns = [
     { title: 'Fecha', dataIndex: 'fecha_registro', key: 'fecha_registro', render: (f) => f ? new Date(f).toLocaleString('es-PE') : '-' },
     { title: 'Cantidad producida', dataIndex: 'cantidad_producida', key: 'cantidad_producida', render: v => v ?? '-' },
+    { 
+      title: 'Observaciones', 
+      dataIndex: 'observaciones', 
+      key: 'observaciones', 
+      render: (obs) => obs ? (
+        <div className="max-w-xs">
+          <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded border">
+            {obs}
+          </div>
+        </div>
+      ) : (
+        <span className="text-gray-400 text-sm">Sin observaciones</span>
+      )
+    },
     { title: 'Acciones', key: 'acciones', render: (_, row) => (
       <div className="space-x-2">
         <Button icon={<EditOutlined />} size="small" onClick={() => setModalEditProduccion(row)}>
@@ -161,45 +176,72 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
       <Modal
         title={`Editar Producción - Orden #${orden?.codigo || ''}`}
         open={!!modalEditProduccion}
-        onCancel={() => setModalEditProduccion(null)}
-        footer={null}
+        onCancel={() => {
+          setModalEditProduccion(null);
+          formEdit.resetFields();
+        }}
+        onOk={() => formEdit.submit()}
+        confirmLoading={editarMutation.isLoading}
         destroyOnHidden
         width={500}
       >
-        <div className="mb-4 p-3 bg-gray-50 rounded">
-          <div className="text-sm text-gray-600">
-            <div><strong>Fecha de registro:</strong> {modalEditProduccion?.fecha_registro ? new Date(modalEditProduccion.fecha_registro).toLocaleString('es-PE') : '-'}</div>
-            <div><strong>Cantidad actual:</strong> {modalEditProduccion?.cantidad_producida || 0}</div>
-          </div>
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-sm text-blue-800">
+            <strong>Fecha de registro:</strong> {modalEditProduccion?.fecha_registro ? new Date(modalEditProduccion.fecha_registro).toLocaleString('es-PE') : '-'}<br/>
+            <strong>Cantidad actual:</strong> {modalEditProduccion?.cantidad_producida || 0} unidades<br/>
+            <strong>Observaciones actuales:</strong> {modalEditProduccion?.observaciones || 'Sin observaciones'}
+          </p>
         </div>
-        <BaseForm
-          onSubmit={async (values) => {
+
+        <Form
+          form={formEdit}
+          layout="vertical"
+          initialValues={{
+            cantidad_producida: modalEditProduccion?.cantidad_producida || 1,
+            observaciones: modalEditProduccion?.observaciones || ''
+          }}
+          onFinish={async (values) => {
             try {
               await editarMutation.mutateAsync({
                 produccionId: modalEditProduccion.id,
-                produccionData: { cantidad_producida: values.cantidad_producida }
+                produccionData: { 
+                  cantidad_producida: values.cantidad_producida,
+                  observaciones: values.observaciones || ''
+                }
               });
               toast.success('Producción editada correctamente');
               setModalEditProduccion(null);
+              formEdit.resetFields();
             } catch (error) {
               toast.error(error.message || 'Error al editar producción');
             }
           }}
-          fields={[
-            {
-              name: 'cantidad_producida',
-              label: 'Nueva cantidad producida',
-              type: 'number',
-              defaultValue: modalEditProduccion?.cantidad_producida,
-              validation: {
-                required: 'La cantidad es obligatoria',
-                min: { value: 1, message: 'Debe ser mayor a 0' }
-              }
-            }
-          ]}
-          submitText="Guardar cambios"
-          onCancel={() => setModalEditProduccion(null)}
-        />
+        >
+          <Form.Item
+            name="cantidad_producida"
+            label="Nueva cantidad producida"
+            rules={[
+              { required: true, message: 'Ingrese la cantidad producida' },
+              { type: 'number', min: 1, message: 'Debe ser mayor a 0' }
+            ]}
+          >
+            <InputNumber
+              min={1}
+              placeholder="Ej. 50"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="observaciones"
+            label="Observaciones"
+          >
+            <Input.TextArea
+              placeholder="Observaciones adicionales (opcional)"
+              rows={3}
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </Modal>
   );

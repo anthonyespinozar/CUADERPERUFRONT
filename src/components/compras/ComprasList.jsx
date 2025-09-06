@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useCompras } from '@/hooks/useCompras';
+import { useCompras, useCreateCompra, useUpdateCompra, useUpdateCompraEstado, useDeleteCompra } from '@/hooks/useCompras';
 import { useProveedores } from '@/hooks/useProveedores';
 import { useMateriales } from '@/hooks/useMateriales';
 import { Button, Modal, Form, Input, Select, InputNumber, DatePicker, Divider, Tag } from 'antd';
 import { EditOutlined, PlusOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { DataTable } from '@/components/tables/DataTable';
-import { createCompra, updateCompraEstado, updateCompra, deleteCompra } from '@/services/comprasService';
 import { createProveedor } from '@/services/proveedoresService';
 import { createMateriales } from '@/services/materialesService';
 import { toast } from 'sonner';
@@ -320,10 +319,14 @@ const CompraForm = ({ form, initialValues, onFinish, onCancel, onOpenProveedorMo
 
 const EstadoCompraModal = ({ open, onClose, compra, onEstadoChange }) => {
   const [form] = Form.useForm();
+  const updateEstadoMutation = useUpdateCompraEstado();
 
   const handleEstadoChange = async (values) => {
     try {
-      await updateCompraEstado(compra.compra_id, values.estado);
+      await updateEstadoMutation.mutateAsync({
+        id: compra.compra_id,
+        estado: values.estado
+      });
       toast.success('Estado de compra actualizado exitosamente');
       onEstadoChange();
       onClose();
@@ -338,6 +341,7 @@ const EstadoCompraModal = ({ open, onClose, compra, onEstadoChange }) => {
       open={open}
       onOk={form.submit}
       onCancel={onClose}
+      confirmLoading={updateEstadoMutation.isLoading}
       width={400}
     >
       <Form
@@ -375,7 +379,7 @@ export default function ComprasList() {
     material: undefined,
     descripcion: undefined,
   });
-  const { data: allCompras, isLoading, refetch } = useCompras();
+  const { data: allCompras, isLoading } = useCompras();
   const { data: proveedores, refetch: refetchProveedores } = useProveedores();
   const { data: materiales, refetch: refetchMateriales } = useMateriales();
   const [modalVisible, setModalVisible] = useState(false);
@@ -384,6 +388,11 @@ export default function ComprasList() {
   const [selectedCompra, setSelectedCompra] = useState(null);
   const [proveedorModalVisible, setProveedorModalVisible] = useState(false);
   const [materialModalVisible, setMaterialModalVisible] = useState(false);
+
+  // Hooks de mutación
+  const createCompraMutation = useCreateCompra();
+  const updateCompraMutation = useUpdateCompra();
+  const deleteCompraMutation = useDeleteCompra();
 
   // Filtros locales (solo frontend)
   const filteredData = (allCompras || []).filter((compra) => {
@@ -418,15 +427,11 @@ export default function ComprasList() {
     setEditingCompra(compra);
 
     // Transformar los datos de la compra al formato del formulario
-    // El backend devuelve 'materiales' pero el formulario espera 'materiales'
     const materialesForm = compra.materiales?.map(material => ({
       material_id: material.material_id,
       cantidad: material.cantidad,
       precio_unitario: material.precio_unitario
     })) || [];
-
-    console.log('Datos de la compra para editar:', compra); // Debug
-    console.log('Materiales formateados:', materialesForm); // Debug
 
     form.setFieldsValue({
       proveedor_id: compra.proveedor_id,
@@ -456,9 +461,8 @@ export default function ComprasList() {
       ),
       async onOk() {
         try {
-          await deleteCompra(compra.compra_id);
+          await deleteCompraMutation.mutateAsync(compra.compra_id);
           toast.success('Compra eliminada exitosamente');
-          refetch();
         } catch (error) {
           toast.error(error.message || 'Error al eliminar la compra');
         }
@@ -523,13 +527,14 @@ export default function ComprasList() {
         observaciones: values.observaciones,
       };
 
-      console.log('Datos a enviar:', compraData); // Debug
-
       if (editingCompra) {
-        await updateCompra(editingCompra.compra_id, compraData);
+        await updateCompraMutation.mutateAsync({
+          id: editingCompra.compra_id,
+          data: compraData
+        });
         toast.success('Compra actualizada exitosamente');
       } else {
-        await createCompra(compraData);
+        await createCompraMutation.mutateAsync(compraData);
         toast.success('Compra creada exitosamente');
       }
       setModalVisible(false);
@@ -542,7 +547,6 @@ export default function ComprasList() {
         fecha_entrega_esperada: null,
         observaciones: undefined,
       });
-      refetch();
     } catch (error) {
       toast.error(error.message || 'Error al procesar la solicitud');
     }
@@ -662,6 +666,7 @@ export default function ComprasList() {
             danger
             icon={<DeleteOutlined />}
             onClick={() => handleDelete(row)}
+            loading={deleteCompraMutation.isLoading}
           >
             Eliminar
           </Button>
@@ -812,6 +817,7 @@ export default function ComprasList() {
         open={modalVisible}
         onOk={form.submit}
         onCancel={handleModalCancel}
+        confirmLoading={createCompraMutation.isLoading || updateCompraMutation.isLoading}
         width={600}
       >
         <CompraForm
@@ -828,7 +834,7 @@ export default function ComprasList() {
         open={estadoModalVisible}
         onClose={() => setEstadoModalVisible(false)}
         compra={selectedCompra}
-        onEstadoChange={refetch}
+        onEstadoChange={() => {}}
       />
 
       {/* Modal para crear proveedor */}

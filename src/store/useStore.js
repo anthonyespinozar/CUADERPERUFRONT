@@ -107,13 +107,16 @@ const useStore = create(
         const user = authService.getUser();
         const token = authService.getToken();
 
-        state?.setHydrated();
-        
-        if (!isAuthenticated) {
-          state?.logout();
-        } else {
-          state?.setHydrated();
-          set({ user, token, isAuthenticated });
+        if (state) {
+          state.setHydrated();
+          
+          if (!isAuthenticated) {
+            state.logout();
+          } else if (user && token) {
+            state.user = user;
+            state.token = token;
+            state.isAuthenticated = true;
+          }
         }
       },
     }

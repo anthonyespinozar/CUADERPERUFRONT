@@ -436,7 +436,7 @@ export default function MaterialesList() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">Gestión de Inventario</h1>
+        <h1 className="text-2xl font-semibold">Gestión de Insumos</h1>
         <Button
           type="primary"
           icon={<PlusOutlined />}

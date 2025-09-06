@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button, Select, DatePicker, Input } from 'antd';
-import { useMovimientos } from '@/hooks/useMovimientos';
+import { useMovimientos, useDeleteMovimiento } from '@/hooks/useMovimientos';
 import { useMateriales } from '@/hooks/useMateriales';
 import MovimientoForm from './MovimientoForm';
 import { DataTable } from '@/components/tables/DataTable';
@@ -10,8 +10,6 @@ import dayjs from 'dayjs';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { ConfirmationModal } from '@/components/common/ConfirmationModal';
 import { toast } from 'sonner';
-import { deleteMovimiento } from '@/services/movimientosService';
-import { useQueryClient } from '@tanstack/react-query';
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -27,10 +25,9 @@ export default function MovimientosList() {
     descripcion: undefined,
   });
 
-  const queryClient = useQueryClient();
-
   const { data: allMovimientos, isLoading } = useMovimientos();
   const { data: materiales } = useMateriales();
+  const deleteMovimientoMutation = useDeleteMovimiento();
 
   // Filtros locales (solo frontend)
   const filteredData = (allMovimientos || []).filter((mov) => {
@@ -41,11 +38,6 @@ export default function MovimientosList() {
     if (filters.descripcion && !mov.descripcion?.toLowerCase().includes(filters.descripcion.toLowerCase())) return false;
     return true;
   });
-
-  const refreshData = () => {
-    queryClient.invalidateQueries(['movimientos']);
-    queryClient.invalidateQueries(['materiales']);
-  };
 
   const handleEdit = (row) => {
     setEditingMovimiento(row);
@@ -58,9 +50,8 @@ export default function MovimientosList() {
       content: <div>¿Seguro que deseas eliminar el movimiento #{row.id}?</div>,
       onOk: async () => {
         try {
-          await deleteMovimiento(row.id);
+          await deleteMovimientoMutation.mutateAsync(row.id);
           toast.success('Movimiento eliminado');
-          refreshData();
         } catch (e) {
           toast.error(e.message || 'Error al eliminar');
         }
@@ -121,7 +112,13 @@ export default function MovimientosList() {
           <Button type="primary" icon={<EditOutlined />} onClick={() => handleEdit(row)}>
             Editar
           </Button>
-          <Button type="primary" danger icon={<DeleteOutlined />} onClick={() => handleDelete(row)}>
+          <Button 
+            type="primary" 
+            danger 
+            icon={<DeleteOutlined />} 
+            onClick={() => handleDelete(row)}
+            loading={deleteMovimientoMutation.isLoading}
+          >
             Eliminar
           </Button>
         </div>
@@ -192,7 +189,6 @@ export default function MovimientosList() {
       <MovimientoForm
         open={formVisible}
         onClose={handleFormClose}
-        onSuccess={refreshData}
         editingMovimiento={editingMovimiento}
       />
     </div>

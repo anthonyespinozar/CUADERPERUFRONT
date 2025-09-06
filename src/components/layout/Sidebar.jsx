@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { authService } from '@/services/authService';
+import { useLogout } from '@/hooks/useLogout';
 import {
   HomeIcon,
   UsersIcon,
@@ -24,7 +24,7 @@ const navigation = [
     roles: ['administrador', 'usuario']
   },
   {
-    name: 'Inventario',
+    name: 'Insumos',
     href: '/inventario',
     icon: CubeIcon,
     roles: ['administrador', 'usuario'],
@@ -91,10 +91,10 @@ const navigation = [
 
 export function Sidebar({ user }) {
   const pathname = usePathname();
+  const { logout } = useLogout();
 
   const handleLogout = () => {
-    authService.logout();
-    window.location.href = '/login';
+    logout();
   };
 
   const filteredNavigation = navigation.filter(item => 

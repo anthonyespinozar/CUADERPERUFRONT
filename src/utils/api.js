@@ -1,6 +1,7 @@
 import axios from "axios";
 import environment from "@/config/environment";
 import { authService } from "@/services/authService";
+import { toast } from "sonner";
 
 const BASE_URL = environment.url_backend;
 
@@ -32,8 +33,27 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       // Si el token ha expirado o es inválido
+      console.log('Token expirado o inválido, redirigiendo al login...');
+      
+      // Limpiar datos de autenticación
       authService.logout();
-      return Promise.reject(error);
+      
+      // Solo mostrar mensaje y redirigir si no estamos ya en la página de login
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        // Mostrar mensaje al usuario
+        toast.error('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', {
+          duration: 5000,
+        });
+        
+        // Redirigir al login después de un breve delay
+        setTimeout(() => {
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+        }, 2000);
+      }
+      
+      return Promise.reject(new Error('Sesión expirada. Por favor, inicie sesión nuevamente.'));
     }
     
     // Para otros errores, mostrar el mensaje específico

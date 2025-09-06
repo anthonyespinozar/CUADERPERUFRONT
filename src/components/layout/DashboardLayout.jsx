@@ -6,6 +6,7 @@ import { authService } from '@/services/authService';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { TokenExpirationAlert } from '@/components/common/TokenExpirationAlert';
 import { toast } from 'sonner';
 
 const PROTECTED_ROUTES = {
@@ -29,27 +30,43 @@ export function DashboardLayout({ children }) {
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const currentUser = authService.getUser();
-    if (!authService.isAuthenticated()) {
-      toast.error('Sesión no válida. Por favor, inicie sesión.');
-      router.push('/login');
-      return;
-    }
+    const checkAuth = () => {
+      try {
+        const authenticated = authService.isAuthenticated();
+        const currentUser = authService.getUser();
+        
+        setIsAuthenticated(authenticated);
+        setUser(currentUser);
+        setIsLoading(false);
 
-    setUser(currentUser);
+        if (!authenticated) {
+          router.push('/login');
+          return;
+        }
 
-    const allowedRoles = PROTECTED_ROUTES[pathname];
-    if (allowedRoles && !allowedRoles.includes(currentUser?.rol)) {
-      toast.error('No tienes permisos para acceder a esta página');
-      router.push('/dashboard');
-    }
+        // Verificar permisos de la ruta
+        const allowedRoles = PROTECTED_ROUTES[pathname];
+        if (allowedRoles && !allowedRoles.includes(currentUser?.rol?.toLowerCase())) {
+          toast.error('No tienes permisos para acceder a esta página');
+          router.push('/dashboard');
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        setIsAuthenticated(false);
+        setUser(null);
+        setIsLoading(false);
+        router.push('/login');
+      }
+    };
 
-    setIsLoading(false);
-  }, [router, pathname]);
+    checkAuth();
+  }, [pathname, router]);
 
-  if (isLoading || !user) {
+  // Mostrar loading mientras se verifica la autenticación
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <LoadingSpinner />
@@ -57,19 +74,28 @@ export function DashboardLayout({ children }) {
     );
   }
 
-  return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar user={user} />
+  // Si no está autenticado, no mostrar el layout
+  if (!isAuthenticated || !user) {
+    return null;
+  }
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header user={user} />
-        
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-          <div className="min-w-full">
-            {children}
-          </div>
-        </main>
+  return (
+    <>
+      <TokenExpirationAlert />
+      <div className="flex h-screen bg-gray-100">
+        <Sidebar user={user} />
+
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header user={user} />
+          
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+            <div className="min-w-full">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
+

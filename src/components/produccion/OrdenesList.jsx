@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useOrdenesProduccion } from "@/hooks/useOrdenesProduccion";
 import { useRouter } from "next/navigation";
-import { Form,  Button, Tag,  Select,Progress, Modal, InputNumber, Input, DatePicker } from "antd";
+import { Form, Button, Tag, Select, Progress, Modal, InputNumber, Input, DatePicker } from "antd";
 import { EyeOutlined, PlayCircleOutlined, CheckCircleOutlined, DeleteOutlined, PlusOutlined, EditOutlined, HistoryOutlined } from "@ant-design/icons";
 import { DataTable } from "@/components/tables/DataTable";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
@@ -36,6 +36,7 @@ function EstadoBadge({ estado }) {
 export default function OrdenesList() {
   const router = useRouter();
   const [form] = Form.useForm();
+  const [formRegistro] = Form.useForm();
   const { data, isLoading, refetch } = useOrdenesProduccion();
   const { data: producciones } = useProducciones();
   // Mapea la data para la tabla
@@ -103,35 +104,33 @@ export default function OrdenesList() {
   ];
 
   // Acciones
-  // En la tabla y acciones, usa los campos de ordenData (ya aplanados en el hook)
-  // Para el modal de detalle, pasa el objeto original (con materialesSeleccionados)
   const handleVerDetalle = (ordenId) => {
     const ordenPlano = (ordenes || []).find(o => o.id === ordenId);
     setModalDetalle({ open: true, ordenObj: ordenPlano?._obj });
   };
+  
   const handleNuevaOrden = () => setModalNuevaOrden(true);
+  
   const handleEditarOrden = (orden) => {
-    // Cargar los materiales existentes de la orden usando la misma estructura que OrdenDetalleModal
     const ordenCompleta = ordenes.find(o => o.id === orden.id)?._obj;
-    console.log('Orden completa:', ordenCompleta); // Debug
-    console.log('Materiales de la orden:', ordenCompleta?.materialesSeleccionados); // Debug
-
     const materialesExistentes = ordenCompleta?.materialesSeleccionados?.map(m => ({
-      material_id: m.material_id || m.id, // Manejar ambos casos de estructura
+      material_id: m.material_id || m.id,
       cantidad_necesaria: m.cantidad_necesaria
     })) || [];
 
-    console.log('Materiales existentes procesados:', materialesExistentes); // Debug
     setMaterialesSeleccionados(materialesExistentes);
     setModalEditarOrden({ open: true, orden });
   };
+  
   const handleVerHistorial = (orden) => {
     setModalHistorial({ open: true, orden });
   };
+  
   const handleRegistrarProduccion = (ordenId) => {
     const ordenPlano = (ordenes || []).find(o => o.id === ordenId);
     setModalRegistrar({ open: true, orden: ordenPlano, ordenId });
   };
+  
   const handleFinalizar = (orden) => {
     ConfirmationModal.confirm({
       title: 'Finalizar Orden',
@@ -146,7 +145,7 @@ export default function OrdenesList() {
       }
     });
   };
-  // Eliminar (solo si no tiene producciones, lógica pendiente de backend)
+  
   const handleDelete = (orden) => {
     const { producido } = calcularProgreso(orden.id);
     const mensaje = producido > 0
@@ -245,7 +244,7 @@ export default function OrdenesList() {
           <Button
             icon={<PlayCircleOutlined />}
             style={{
-              backgroundColor: '#10b981', // verde Tailwind
+              backgroundColor: '#10b981',
               borderColor: '#10b981',
               color: 'white'
             }}
@@ -259,7 +258,7 @@ export default function OrdenesList() {
           <Button
             icon={<CheckCircleOutlined />}
             style={{
-              backgroundColor: '#8b5cf6', // violeta Tailwind
+              backgroundColor: '#8b5cf6',
               borderColor: '#8b5cf6',
               color: 'white'
             }}
@@ -281,7 +280,6 @@ export default function OrdenesList() {
           </Button>
         )}
       </div>
-
     );
   };
 
@@ -295,7 +293,6 @@ export default function OrdenesList() {
           await iniciarMutation.mutateAsync(orden.id);
           toast.success('Producción iniciada correctamente');
         } catch (error) {
-          // Mostrar error del backend (stock insuficiente, estado, etc)
           const msg = error?.response?.data?.error || error.message || 'Error al iniciar producción';
           toast.error(msg);
         }
@@ -319,6 +316,7 @@ export default function OrdenesList() {
 
       {/* Resumen Ejecutivo */}
       <OrdenesExecutiveSummary />
+      
       {/* Filtros rápidos y badges de estado */}
       <div className="flex flex-wrap gap-2 items-center bg-white p-4 rounded-lg shadow-md">
         {filtrosRapidos.map(f => (
@@ -350,6 +348,7 @@ export default function OrdenesList() {
           Limpiar búsqueda
         </Button>
       </div>
+      
       <DataTable
         columns={columns}
         data={filteredData()}
@@ -357,395 +356,469 @@ export default function OrdenesList() {
         actions={renderActions}
         pageSize={10}
       />
+      
       <OrdenDetalleModal
         open={modalDetalle.open}
         ordenObj={modalDetalle.ordenObj}
         onClose={() => setModalDetalle({ open: false, ordenObj: null })}
         onRegistrarProduccion={(ordenId) => {
-          // Cerrar el modal de detalle y abrir el de registro
           setModalDetalle({ open: false, ordenObj: null });
           handleRegistrarProduccion(ordenId);
         }}
       />
- <Modal
-  title="Nueva Orden de Producción"
-  open={modalNuevaOrden}
-  onCancel={() => {
-    setModalNuevaOrden(false);
-    setMaterialesSeleccionados([]);
-    form.resetFields();
-  }}
-  onOk={() => form.submit()}
-  confirmLoading={createOrdenMutation.isLoading}
-  destroyOnHidden
->
-  <Form
-    form={form}
-    layout="vertical"
-    onFinish={async (values) => {
-      try {
-        if (materialesSeleccionados.length === 0) {
-          toast.error('Debe seleccionar al menos un material');
-          return;
-        }
 
-        const payload = {
-          ordenData: {
-            tipo_cuaderno: values.tipo_cuaderno,
-            cantidad_producir: values.cantidad_producir,
-            estado: "pendiente",
-            fecha_programada: values.fecha_programada,
-            fecha_inicio: null,
-            fecha_fin: null,
-            cliente_id: values.cliente_id
-          },
-          materialesSeleccionados: materialesSeleccionados.map(m => ({
-            id: m.material_id,
-            cantidad_necesaria: m.cantidad_necesaria
-          }))
-        };
-
-        await createOrdenMutation.mutateAsync(payload);
-        toast.success('Orden creada correctamente');
-        setModalNuevaOrden(false);
-        setMaterialesSeleccionados([]);
-        form.resetFields();
-      } catch (error) {
-        toast.error(error.message || 'Error al crear la orden');
-      }
-    }}
-    className="pt-2"
-  >
-    {/* Cliente y Producto */}
-    <Form.Item
-      name="cliente_id"
-      label="Cliente"
-      rules={[{ required: true, message: 'Seleccione el cliente' }]}
-    >
-      <Select
-        placeholder="Seleccione un cliente"
-        showSearch
-        optionFilterProp="children"
-        filterOption={(input, option) =>
-          option?.children?.toLowerCase().includes(input.toLowerCase())
-        }
+      {/* Modal Nueva Orden */}
+      <Modal
+        title="Nueva Orden de Producción"
+        open={modalNuevaOrden}
+        onCancel={() => {
+          setModalNuevaOrden(false);
+          setMaterialesSeleccionados([]);
+          form.resetFields();
+        }}
+        onOk={() => form.submit()}
+        confirmLoading={createOrdenMutation.isLoading}
+        destroyOnHidden
+        width={800}
       >
-        {clientes?.map(c => (
-          <Select.Option key={c.id} value={c.id}>{c.nombre}</Select.Option>
-        ))}
-      </Select>
-    </Form.Item>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={async (values) => {
+            try {
+              if (materialesSeleccionados.length === 0) {
+                toast.error('Debe seleccionar al menos un material');
+                return;
+              }
 
-    <Form.Item
-      name="tipo_cuaderno"
-      label="Producto a fabricar"
-      rules={[{ required: true, message: 'Ingrese el producto' }]}
-    >
-      <Input placeholder="Ej. Cuaderno rayado" />
-    </Form.Item>
+              const payload = {
+                ordenData: {
+                  tipo_cuaderno: values.tipo_cuaderno,
+                  cantidad_producir: values.cantidad_producir,
+                  estado: "pendiente",
+                  fecha_programada: values.fecha_programada,
+                  fecha_inicio: null,
+                  fecha_fin: null,
+                  cliente_id: values.cliente_id
+                },
+                materialesSeleccionados: materialesSeleccionados.map(m => ({
+                  id: m.material_id,
+                  cantidad_necesaria: m.cantidad_necesaria
+                }))
+              };
 
-    {/* Fecha y Cantidad */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Form.Item
-        name="fecha_programada"
-        label="Fecha Programada"
-        rules={[{ required: true, message: 'Seleccione una fecha' }]}
+              await createOrdenMutation.mutateAsync(payload);
+              toast.success('Orden creada correctamente');
+              setModalNuevaOrden(false);
+              setMaterialesSeleccionados([]);
+              form.resetFields();
+            } catch (error) {
+              toast.error(error.message || 'Error al crear la orden');
+            }
+          }}
+          className="pt-2"
+        >
+          {/* Cliente y Producto */}
+          <Form.Item
+            name="cliente_id"
+            label="Cliente"
+            rules={[{ required: true, message: 'Seleccione el cliente' }]}
+          >
+            <Select
+              placeholder="Seleccione un cliente"
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option?.children?.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {clientes?.map(c => (
+                <Select.Option key={c.id} value={c.id}>{c.nombre}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="tipo_cuaderno"
+            label="Producto a fabricar"
+            rules={[{ required: true, message: 'Ingrese el producto' }]}
+          >
+            <Input placeholder="Ej. Cuaderno rayado" />
+          </Form.Item>
+
+          {/* Fecha y Cantidad */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item
+              name="fecha_programada"
+              label="Fecha Programada"
+              rules={[{ required: true, message: 'Seleccione una fecha' }]}
+            >
+              <DatePicker
+                placeholder="Seleccionar fecha"
+                style={{ width: '100%' }}
+                format="DD/MM/YYYY"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="cantidad_producir"
+              label="Cantidad a producir"
+              rules={[
+                { required: true, message: 'Ingrese la cantidad' },
+                { type: 'number', min: 1, message: 'Debe ser mayor a 0' }
+              ]}
+            >
+              <InputNumber
+                min={1}
+                placeholder="Ej. 100"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+          </div>
+
+          {/* Selector de Materiales */}
+          <div className="mt-4">
+            <label className="font-medium text-sm text-gray-700 mb-2 block">Materiales requeridos</label>
+            <div className="flex gap-2 mb-3">
+              <Select
+                placeholder="➕ Agregar material..."
+                style={{ flex: 1 }}
+                value={null}
+                onChange={(materialId) => {
+                  if (!materialId || materialesSeleccionados.some(m => m.material_id === materialId)) return;
+                  setMaterialesSeleccionados([...materialesSeleccionados, { material_id: materialId, cantidad_necesaria: 1 }]);
+                }}
+              >
+                {(materiales || [])
+                  .filter(m => !materialesSeleccionados.some(sel => sel.material_id === m.id))
+                  .map(m => (
+                    <Select.Option key={m.id} value={m.id}>{m.nombre}</Select.Option>
+                  ))}
+              </Select>
+            </div>
+
+            {materialesSeleccionados.length === 0 ? (
+              <div className="text-gray-500 text-center text-sm py-3 border border-dashed rounded-md">
+                No hay materiales seleccionados
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {materialesSeleccionados.map((mat, idx) => {
+                  const matInfo = materiales.find(m => m.id === mat.material_id);
+                  return (
+                    <div key={mat.material_id} className="flex items-center gap-3 p-3 bg-gray-50 border rounded-md">
+                      <div className="flex-1">
+                        <div className="font-medium">{matInfo?.nombre || `Material #${mat.material_id}`}</div>
+                        <div className="text-xs text-gray-500">ID: {mat.material_id}</div>
+                      </div>
+                      <InputNumber
+                        min={1}
+                        value={mat.cantidad_necesaria}
+                        onChange={val => {
+                          const nuevaCantidad = val || 1;
+                          const nuevos = [...materialesSeleccionados];
+                          nuevos[idx].cantidad_necesaria = nuevaCantidad;
+                          setMaterialesSeleccionados(nuevos);
+                        }}
+                        className="w-24"
+                      />
+                      <Button
+                        type="primary"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() =>
+                          setMaterialesSeleccionados(materialesSeleccionados.filter((_, i) => i !== idx))
+                        }
+                      >
+                        Quitar
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </Form>
+      </Modal>
+
+      {/* Modal Registrar Producción */}
+      <Modal
+        title={`Registrar Producción - Orden #${modalRegistrar.orden?.codigo || ''}`}
+        open={modalRegistrar.open}
+        onCancel={() => {
+          setModalRegistrar({ open: false, orden: null, ordenId: null });
+          formRegistro.resetFields();
+        }}
+        onOk={() => formRegistro.submit()}
+        confirmLoading={registrarMutation.isLoading}
+        destroyOnHidden
+        width={500}
       >
-        <DatePicker
-          placeholder="Seleccionar fecha"
-          style={{ width: '100%' }}
-          format="DD/MM/YYYY"
-        />
-      </Form.Item>
+        <Form
+          form={formRegistro}
+          layout="vertical"
+          onFinish={async (values) => {
+            try {
+              const produccionData = {
+                cantidad_producida: values.cantidad_producida,
+                fecha_produccion: values.fecha_produccion,
+                observaciones: values.observaciones || ''
+              };
 
-      <Form.Item
-        name="cantidad_producir"
-        label="Cantidad a producir"
-        rules={[
-          { required: true, message: 'Ingrese la cantidad' },
-          { type: 'number', min: 1, message: 'Debe ser mayor a 0' }
-        ]}
-      >
-        <InputNumber
-          min={1}
-          placeholder="Ej. 100"
-          style={{ width: '100%' }}
-        />
-      </Form.Item>
-    </div>
-
-    {/* Selector de Materiales */}
-    <div className="mt-4">
-      <label className="font-medium text-sm text-gray-700 mb-2 block">Materiales requeridos</label>
-      <div className="flex gap-2 mb-3">
-        <Select
-          placeholder="➕ Agregar material..."
-          style={{ flex: 1 }}
-          value={null}
-          onChange={(materialId) => {
-            if (!materialId || materialesSeleccionados.some(m => m.material_id === materialId)) return;
-            setMaterialesSeleccionados([...materialesSeleccionados, { material_id: materialId, cantidad_necesaria: 1 }]);
+              await registrarMutation.mutateAsync({
+                ordenId: modalRegistrar.ordenId,
+                produccionData: produccionData
+              });
+              
+              toast.success('Producción registrada correctamente');
+              setModalRegistrar({ open: false, orden: null, ordenId: null });
+              formRegistro.resetFields();
+            } catch (error) {
+              toast.error(error.message || 'Error al registrar la producción');
+            }
           }}
         >
-          {(materiales || [])
-            .filter(m => !materialesSeleccionados.some(sel => sel.material_id === m.id))
-            .map(m => (
-              <Select.Option key={m.id} value={m.id}>{m.nombre}</Select.Option>
-            ))}
-        </Select>
-      </div>
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              <strong>Orden:</strong> {modalRegistrar.orden?.tipo_cuaderno}<br/>
+              <strong>Cliente:</strong> {modalRegistrar.orden?.cliente_nombre}<br/>
+              <strong>Total a producir:</strong> {modalRegistrar.orden?.cantidad_producir} unidades
+            </p>
+          </div>
 
-      {materialesSeleccionados.length === 0 ? (
-        <div className="text-gray-500 text-center text-sm py-3 border border-dashed rounded-md">
-          No hay materiales seleccionados
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {materialesSeleccionados.map((mat, idx) => {
-            const matInfo = materiales.find(m => m.id === mat.material_id);
-            return (
-              <div key={mat.material_id} className="flex items-center gap-3 p-3 bg-gray-50 border rounded-md">
-                <div className="flex-1">
-                  <div className="font-medium">{matInfo?.nombre || `Material #${mat.material_id}`}</div>
-                  <div className="text-xs text-gray-500">ID: {mat.material_id}</div>
-                </div>
-                <InputNumber
-                  min={1}
-                  value={mat.cantidad_necesaria}
-                  onChange={val => {
-                    const nuevaCantidad = val || 1;
-                    const nuevos = [...materialesSeleccionados];
-                    nuevos[idx].cantidad_necesaria = nuevaCantidad;
-                    setMaterialesSeleccionados(nuevos);
-                  }}
-                  className="w-24"
-                />
-                <Button
-                  type="primary"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={() =>
-                    setMaterialesSeleccionados(materialesSeleccionados.filter((_, i) => i !== idx))
-                  }
-                >
-                  Quitar
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  </Form>
-</Modal>
+          <Form.Item
+            name="cantidad_producida"
+            label="Cantidad Producida"
+            rules={[
+              { required: true, message: 'Ingrese la cantidad producida' },
+              { type: 'number', min: 1, message: 'Debe ser mayor a 0' }
+            ]}
+          >
+            <InputNumber
+              min={1}
+              max={modalRegistrar.orden?.cantidad_producir || 999999}
+              placeholder="Ej. 50"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
 
-<Modal
-  title={`Editar Orden #${modalRegistrar.orden?.codigo || ''}`}
-  open={modalRegistrar.open}
-  onCancel={() => {
-    setModalRegistrar({ open: false, orden: null });
-    setMaterialesSeleccionados([]);
-    form.resetFields();
-  }}
-  onOk={() => form.submit()}
-  confirmLoading={updateOrdenMutation.isLoading}
-  destroyOnHidden
-  width={1000}
-></Modal>
+          <Form.Item
+            name="fecha_produccion"
+            label="Fecha de Producción"
+            rules={[{ required: true, message: 'Seleccione la fecha' }]}
+            initialValue={dayjs()}
+          >
+            <DatePicker
+              placeholder="Seleccionar fecha"
+              style={{ width: '100%' }}
+              format="DD/MM/YYYY"
+            />
+          </Form.Item>
 
+          <Form.Item
+            name="observaciones"
+            label="Observaciones"
+          >
+            <Input.TextArea
+              placeholder="Observaciones adicionales (opcional)"
+              rows={3}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
-<Modal
-  title={`Editar Orden #${modalEditarOrden.orden?.codigo || ''}`}
-  open={modalEditarOrden.open}
-  onCancel={() => {
-    setModalEditarOrden({ open: false, orden: null });
-    setMaterialesSeleccionados([]);
-    form.resetFields();
-  }}
-  onOk={() => form.submit()}
-  confirmLoading={updateOrdenMutation.isLoading}
-  destroyOnHidden
-  width={1000}
->
-  {/* Alerta de advertencia */}
-  <div className="mb-4">
-    <div className="p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
-      <strong>⚠️ Importante:</strong> Solo se pueden editar órdenes en estado <strong>"Pendiente"</strong>. Una vez iniciada la producción, los cambios no serán posibles.
-    </div>
-  </div>
-
-  <Form
-    form={form}
-    layout="vertical"
-    initialValues={{
-      fecha_programada: modalEditarOrden.orden?.fecha_programada
-        ? dayjs(modalEditarOrden.orden.fecha_programada)
-        : null,
-      cliente_id: modalEditarOrden.orden?.cliente_id || '',
-      tipo_cuaderno: modalEditarOrden.orden?.tipo_cuaderno || '',
-      cantidad_producir: modalEditarOrden.orden?.cantidad_producir || ''
-    }}
-    onFinish={async (values) => {
-      try {
-        if (materialesSeleccionados.length === 0) {
-          toast.error('Debe seleccionar al menos un material');
-          return;
-        }
-
-        await updateOrdenMutation.mutateAsync({
-          id: modalEditarOrden.orden.id,
-          orden: {
-            ordenData: {
-              codigo: modalEditarOrden.orden.codigo,
-              tipo_cuaderno: values.tipo_cuaderno,
-              cantidad_producir: values.cantidad_producir,
-              estado: modalEditarOrden.orden.estado,
-              fecha_programada: values.fecha_programada,
-              fecha_inicio: modalEditarOrden.orden.fecha_inicio,
-              fecha_fin: modalEditarOrden.orden.fecha_fin,
-              cliente_id: values.cliente_id
-            },
-            materialesSeleccionados: materialesSeleccionados.map(m => ({
-              id: m.material_id,
-              cantidad_necesaria: m.cantidad_necesaria
-            }))
-          }
-        });
-
-        toast.success('Orden actualizada correctamente');
-        setModalEditarOrden({ open: false, orden: null });
-        setMaterialesSeleccionados([]);
-        form.resetFields();
-      } catch (error) {
-        toast.error(error.message || 'Error al actualizar la orden');
-      }
-    }}
-  >
-    {/* Cliente y producto */}
-    <Form.Item
-      name="cliente_id"
-      label="Cliente"
-      rules={[{ required: true, message: 'Seleccione el cliente' }]}
-    >
-      <Select
-        placeholder="Seleccione un cliente"
-        showSearch
-        optionFilterProp="children"
-        filterOption={(input, option) =>
-          option?.children?.toLowerCase().includes(input.toLowerCase())
-        }
-      >
-        {clientes?.map(c => (
-          <Select.Option key={c.id} value={c.id}>{c.nombre}</Select.Option>
-        ))}
-      </Select>
-    </Form.Item>
-
-    <Form.Item
-      name="tipo_cuaderno"
-      label="Producto a fabricar"
-      rules={[{ required: true, message: 'Ingrese el producto' }]}
-    >
-      <Input placeholder="Ej. Cuaderno rayado" />
-    </Form.Item>
-
-    {/* Fecha y Cantidad */}
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Form.Item
-        name="fecha_programada"
-        label="Fecha Programada"
-        rules={[{ required: true, message: 'Seleccione una fecha' }]}
-      >
-        <DatePicker
-          placeholder="Seleccionar fecha"
-          style={{ width: '100%' }}
-          format="DD/MM/YYYY"
-        />
-      </Form.Item>
-
-      <Form.Item
-        name="cantidad_producir"
-        label="Cantidad a producir"
-        rules={[
-          { required: true, message: 'Ingrese la cantidad' },
-          { type: 'number', min: 1, message: 'Debe ser mayor a 0' }
-        ]}
-      >
-        <InputNumber
-          min={1}
-          placeholder="Ej. 100"
-          style={{ width: '100%' }}
-        />
-      </Form.Item>
-    </div>
-
-    {/* Selector de materiales */}
-    <div className="mt-6">
-      <label className="font-medium text-sm text-gray-700 mb-2 block">Materiales requeridos</label>
-
-      <Select
-        placeholder="➕ Agregar material..."
-        value={null}
-        onChange={(materialId) => {
-          if (!materialId || materialesSeleccionados.some(m => m.material_id === materialId)) return;
-          setMaterialesSeleccionados([...materialesSeleccionados, { material_id: materialId, cantidad_necesaria: 1 }]);
+      {/* Modal Editar Orden */}
+      <Modal
+        title={`Editar Orden #${modalEditarOrden.orden?.codigo || ''}`}
+        open={modalEditarOrden.open}
+        onCancel={() => {
+          setModalEditarOrden({ open: false, orden: null });
+          setMaterialesSeleccionados([]);
+          form.resetFields();
         }}
-        style={{ width: '100%', marginBottom: '1rem' }}
+        onOk={() => form.submit()}
+        confirmLoading={updateOrdenMutation.isLoading}
+        destroyOnHidden
+        width={800}
       >
-        {(materiales || [])
-          .filter(m => !materialesSeleccionados.some(sel => sel.material_id === m.id))
-          .map(m => (
-            <Select.Option key={m.id} value={m.id}>{m.nombre}</Select.Option>
-          ))}
-      </Select>
-
-      {materialesSeleccionados.length === 0 ? (
-        <div className="text-center py-4 text-gray-500 border border-dashed rounded-md">
-          No hay materiales seleccionados
+        {/* Alerta de advertencia */}
+        <div className="mb-4">
+          <div className="p-3 rounded-md bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
+            <strong>⚠️ Importante:</strong> Solo se pueden editar órdenes en estado <strong>"Pendiente"</strong>. Una vez iniciada la producción, los cambios no serán posibles.
+          </div>
         </div>
-      ) : (
-        <div className="space-y-2">
-          {materialesSeleccionados.map((mat, idx) => {
-            const matInfo = materiales.find(m => m.id === mat.material_id);
-            return (
-              <div
-                key={mat.material_id}
-                className="flex items-center gap-3 p-3 bg-gray-50 border rounded-md"
-              >
-                <div className="flex-1">
-                  <div className="font-medium">{matInfo?.nombre || `Material #${mat.material_id}`}</div>
-                  <div className="text-xs text-gray-500">ID: {mat.material_id}</div>
-                </div>
-                <InputNumber
-                  min={1}
-                  value={mat.cantidad_necesaria}
-                  onChange={val => {
-                    const nuevaCantidad = val || 1;
-                    const nuevos = [...materialesSeleccionados];
-                    nuevos[idx].cantidad_necesaria = nuevaCantidad;
-                    setMaterialesSeleccionados(nuevos);
-                  }}
-                  className="w-24"
-                />
-                <Button
-                  type="primary"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  onClick={() => setMaterialesSeleccionados(materialesSeleccionados.filter((_, i) => i !== idx))}
-                >
-                  Quitar
-                </Button>
+
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={{
+            fecha_programada: modalEditarOrden.orden?.fecha_programada
+              ? dayjs(modalEditarOrden.orden.fecha_programada)
+              : null,
+            cliente_id: modalEditarOrden.orden?.cliente_id || '',
+            tipo_cuaderno: modalEditarOrden.orden?.tipo_cuaderno || '',
+            cantidad_producir: modalEditarOrden.orden?.cantidad_producir || ''
+          }}
+          onFinish={async (values) => {
+            try {
+              if (materialesSeleccionados.length === 0) {
+                toast.error('Debe seleccionar al menos un material');
+                return;
+              }
+
+              await updateOrdenMutation.mutateAsync({
+                id: modalEditarOrden.orden.id,
+                orden: {
+                  ordenData: {
+                    codigo: modalEditarOrden.orden.codigo,
+                    tipo_cuaderno: values.tipo_cuaderno,
+                    cantidad_producir: values.cantidad_producir,
+                    estado: modalEditarOrden.orden.estado,
+                    fecha_programada: values.fecha_programada,
+                    fecha_inicio: modalEditarOrden.orden.fecha_inicio,
+                    fecha_fin: modalEditarOrden.orden.fecha_fin,
+                    cliente_id: values.cliente_id
+                  },
+                  materialesSeleccionados: materialesSeleccionados.map(m => ({
+                    id: m.material_id,
+                    cantidad_necesaria: m.cantidad_necesaria
+                  }))
+                }
+              });
+
+              toast.success('Orden actualizada correctamente');
+              setModalEditarOrden({ open: false, orden: null });
+              setMaterialesSeleccionados([]);
+              form.resetFields();
+            } catch (error) {
+              toast.error(error.message || 'Error al actualizar la orden');
+            }
+          }}
+        >
+          {/* Cliente y producto */}
+          <Form.Item
+            name="cliente_id"
+            label="Cliente"
+            rules={[{ required: true, message: 'Seleccione el cliente' }]}
+          >
+            <Select
+              placeholder="Seleccione un cliente"
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option?.children?.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {clientes?.map(c => (
+                <Select.Option key={c.id} value={c.id}>{c.nombre}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="tipo_cuaderno"
+            label="Producto a fabricar"
+            rules={[{ required: true, message: 'Ingrese el producto' }]}
+          >
+            <Input placeholder="Ej. Cuaderno rayado" />
+          </Form.Item>
+
+          {/* Fecha y Cantidad */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item
+              name="fecha_programada"
+              label="Fecha Programada"
+              rules={[{ required: true, message: 'Seleccione una fecha' }]}
+            >
+              <DatePicker
+                placeholder="Seleccionar fecha"
+                style={{ width: '100%' }}
+                format="DD/MM/YYYY"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="cantidad_producir"
+              label="Cantidad a producir"
+              rules={[
+                { required: true, message: 'Ingrese la cantidad' },
+                { type: 'number', min: 1, message: 'Debe ser mayor a 0' }
+              ]}
+            >
+              <InputNumber
+                min={1}
+                placeholder="Ej. 100"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+          </div>
+
+          {/* Selector de materiales */}
+          <div className="mt-6">
+            <label className="font-medium text-sm text-gray-700 mb-2 block">Materiales requeridos</label>
+
+            <Select
+              placeholder="➕ Agregar material..."
+              value={null}
+              onChange={(materialId) => {
+                if (!materialId || materialesSeleccionados.some(m => m.material_id === materialId)) return;
+                setMaterialesSeleccionados([...materialesSeleccionados, { material_id: materialId, cantidad_necesaria: 1 }]);
+              }}
+              style={{ width: '100%', marginBottom: '1rem' }}
+            >
+              {(materiales || [])
+                .filter(m => !materialesSeleccionados.some(sel => sel.material_id === m.id))
+                .map(m => (
+                  <Select.Option key={m.id} value={m.id}>{m.nombre}</Select.Option>
+                ))}
+            </Select>
+
+            {materialesSeleccionados.length === 0 ? (
+              <div className="text-center py-4 text-gray-500 border border-dashed rounded-md">
+                No hay materiales seleccionados
               </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  </Form>
-</Modal>
-
+            ) : (
+              <div className="space-y-2">
+                {materialesSeleccionados.map((mat, idx) => {
+                  const matInfo = materiales.find(m => m.id === mat.material_id);
+                  return (
+                    <div
+                      key={mat.material_id}
+                      className="flex items-center gap-3 p-3 bg-gray-50 border rounded-md"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{matInfo?.nombre || `Material #${mat.material_id}`}</div>
+                        <div className="text-xs text-gray-500">ID: {mat.material_id}</div>
+                      </div>
+                      <InputNumber
+                        min={1}
+                        value={mat.cantidad_necesaria}
+                        onChange={val => {
+                          const nuevaCantidad = val || 1;
+                          const nuevos = [...materialesSeleccionados];
+                          nuevos[idx].cantidad_necesaria = nuevaCantidad;
+                          setMaterialesSeleccionados(nuevos);
+                        }}
+                        className="w-24"
+                      />
+                      <Button
+                        type="primary"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => setMaterialesSeleccionados(materialesSeleccionados.filter((_, i) => i !== idx))}
+                      >
+                        Quitar
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </Form>
+      </Modal>
 
       {/* Modal de historial */}
       <OrdenHistorialModal

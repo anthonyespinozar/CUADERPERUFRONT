@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Form, Modal, Button, Select, InputNumber, Input, DatePicker } from 'antd';
 import { useMateriales } from '@/hooks/useMateriales';
-import { createMovimiento, editMovimiento } from '@/services/movimientosService';
+import { useCreateMovimiento, useEditMovimiento } from '@/hooks/useMovimientos';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
 
@@ -12,7 +12,10 @@ const { Option } = Select;
 export default function MovimientoForm({ open, onClose, onSuccess, editingMovimiento = null }) {
   const [form] = Form.useForm();
   const { data: materiales } = useMateriales();
-  const [loading, setLoading] = useState(false);
+  
+  // Hooks de mutación
+  const createMovimientoMutation = useCreateMovimiento();
+  const editMovimientoMutation = useEditMovimiento();
 
   // Resetear formulario cuando se abre/cierra
   useEffect(() => {
@@ -32,7 +35,6 @@ export default function MovimientoForm({ open, onClose, onSuccess, editingMovimi
   }, [open, editingMovimiento, form]);
 
   const handleFinish = async (values) => {
-    setLoading(true);
     try {
       const movimientoData = {
         ...values,
@@ -43,11 +45,14 @@ export default function MovimientoForm({ open, onClose, onSuccess, editingMovimi
 
       if (editingMovimiento) {
         // Editar movimiento existente
-        await editMovimiento(editingMovimiento.id, movimientoData);
+        await editMovimientoMutation.mutateAsync({
+          id: editingMovimiento.id,
+          data: movimientoData
+        });
         toast.success('Movimiento actualizado');
       } else {
         // Crear nuevo movimiento
-        await createMovimiento(movimientoData);
+        await createMovimientoMutation.mutateAsync(movimientoData);
         toast.success('Movimiento registrado');
       }
 
@@ -56,12 +61,11 @@ export default function MovimientoForm({ open, onClose, onSuccess, editingMovimi
       onClose();
     } catch (e) {
       toast.error(e.message || `Error al ${editingMovimiento ? 'actualizar' : 'registrar'} movimiento`);
-    } finally {
-      setLoading(false);
     }
   };
 
   const isEditing = !!editingMovimiento;
+  const isLoading = createMovimientoMutation.isLoading || editMovimientoMutation.isLoading;
 
   return (
     <Modal
@@ -69,7 +73,7 @@ export default function MovimientoForm({ open, onClose, onSuccess, editingMovimi
       open={open}
       onCancel={onClose}
       onOk={form.submit}
-      confirmLoading={loading}
+      confirmLoading={isLoading}
       destroyOnHidden
     >
       <Form
