@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useReporteMovimientos } from '@/hooks/useReportes';
+import { useReporteMovimientosProductos } from '@/hooks/useReportes';
 import ReporteFiltros from './ReporteFiltros';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import environment from '@/config/environment';
@@ -12,13 +12,13 @@ import {
   CubeIcon
 } from '@heroicons/react/24/outline';
 
-export default function ReporteMovimientos() {
+export default function ReporteMovimientosProductos() {
   const [filtros, setFiltros] = useState({
-    material_id: '',
+    producto_id: '',
     desde: '',
     hasta: ''
   });
-  const { data: movimientos, isLoading, error, refetch } = useReporteMovimientos(filtros);
+  const { data: movimientos, isLoading, error, refetch } = useReporteMovimientosProductos(filtros);
 
   const handleFiltrosChange = (nuevosFiltros) => {
     setFiltros(nuevosFiltros);
@@ -26,7 +26,7 @@ export default function ReporteMovimientos() {
 
   const handleExportar = async (params) => {
     try {
-      const url = new URL('/api/reportes/movimientos', environment.url_backend);
+      const url = new URL('/api/reportes/movimientosProductos', environment.url_backend);
       Object.keys(params).forEach(key => {
         if (params[key]) {
           url.searchParams.append(key, params[key]);
@@ -48,7 +48,7 @@ export default function ReporteMovimientos() {
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;
-        a.download = `reporte_movimientos_${Date.now()}.${params.export === 'excel' ? 'xlsx' : 'pdf'}`;
+        a.download = `reporte_movimientos_productos_${Date.now()}.${params.export === 'excel' ? 'xlsx' : 'pdf'}`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(downloadUrl);
@@ -115,11 +115,11 @@ export default function ReporteMovimientos() {
   }
 
   const totalMovimientos = movimientos?.length || 0;
-  const entradas = movimientos?.filter(m => m.tipo_movimiento?.toLowerCase() === 'entrada').length || 0;
-  const salidas = movimientos?.filter(m => m.tipo_movimiento?.toLowerCase() === 'salida').length || 0;
-  const totalEntradas = movimientos?.filter(m => m.tipo_movimiento?.toLowerCase() === 'entrada')
+  const entradas = movimientos?.filter(m => m.tipo?.toLowerCase() === 'entrada').length || 0;
+  const salidas = movimientos?.filter(m => m.tipo?.toLowerCase() === 'salida').length || 0;
+  const totalEntradas = movimientos?.filter(m => m.tipo?.toLowerCase() === 'entrada')
     .reduce((sum, m) => sum + (m.cantidad || 0), 0) || 0;
-  const totalSalidas = movimientos?.filter(m => m.tipo_movimiento?.toLowerCase() === 'salida')
+  const totalSalidas = movimientos?.filter(m => m.tipo?.toLowerCase() === 'salida')
     .reduce((sum, m) => sum + (m.cantidad || 0), 0) || 0;
 
   return (
@@ -127,11 +127,11 @@ export default function ReporteMovimientos() {
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex items-center gap-3">
-          <CubeIcon className="h-8 w-8 text-blue-600" />
+          <CubeIcon className="h-8 w-8 text-purple-600" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reporte de Movimientos</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Reporte de Movimientos de Productos</h1>
             <p className="text-gray-600">
-              Analiza los movimientos de inventario en el período seleccionado
+              Analiza los movimientos de productos terminados en el período seleccionado
             </p>
           </div>
         </div>
@@ -151,7 +151,7 @@ export default function ReporteMovimientos() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center">
-              <CubeIcon className="h-8 w-8 text-blue-600" />
+              <CubeIcon className="h-8 w-8 text-purple-600" />
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Total Movimientos</p>
                 <p className="text-2xl font-bold text-gray-900">{totalMovimientos}</p>
@@ -215,7 +215,7 @@ export default function ReporteMovimientos() {
                   ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Material
+                  Producto
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Tipo
@@ -224,7 +224,13 @@ export default function ReporteMovimientos() {
                   Cantidad
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Descripción
+                  Motivo
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Origen
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Stock Resultante
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Fecha
@@ -233,7 +239,7 @@ export default function ReporteMovimientos() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {movimientos && movimientos.map((movimiento) => {
-                const TipoIcon = getTipoMovimientoIcon(movimiento.tipo_movimiento);
+                const TipoIcon = getTipoMovimientoIcon(movimiento.tipo);
                 
                 return (
                   <tr key={movimiento.id} className="hover:bg-gray-50">
@@ -241,13 +247,13 @@ export default function ReporteMovimientos() {
                       #{movimiento.id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {movimiento.material_nombre}
+                      {movimiento.producto}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <TipoIcon className={`h-4 w-4 ${getTipoMovimientoColor(movimiento.tipo_movimiento)}`} />
-                        <span className={`ml-2 text-sm font-medium ${getTipoMovimientoColor(movimiento.tipo_movimiento)}`}>
-                          {movimiento.tipo_movimiento}
+                        <TipoIcon className={`h-4 w-4 ${getTipoMovimientoColor(movimiento.tipo)}`} />
+                        <span className={`ml-2 text-sm font-medium ${getTipoMovimientoColor(movimiento.tipo)}`}>
+                          {movimiento.tipo}
                         </span>
                       </div>
                     </td>
@@ -255,10 +261,16 @@ export default function ReporteMovimientos() {
                       {movimiento.cantidad}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
-                      {movimiento.descripcion || '-'}
+                      {movimiento.motivo || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(movimiento.fecha_movimiento)}
+                      {movimiento.origen || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {movimiento.stock_resultante !== null ? movimiento.stock_resultante : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatDate(movimiento.fecha)}
                     </td>
                   </tr>
                 );
@@ -272,11 +284,12 @@ export default function ReporteMovimientos() {
             <CubeIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No hay movimientos</h3>
             <p className="mt-1 text-sm text-gray-500">
-              No se encontraron movimientos en el período seleccionado.
+              No se encontraron movimientos de productos en el período seleccionado.
             </p>
           </div>
         )}
       </div>
     </div>
   );
-} 
+}
+

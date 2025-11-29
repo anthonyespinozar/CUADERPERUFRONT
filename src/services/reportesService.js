@@ -28,6 +28,20 @@ export async function getReporteCompras(params = {}) {
   }
 }
 
+  /**
+   * Obtener reporte de movimientos de insumos
+   * @param {Object} [params] - { material_id, desde, hasta, export }
+   */
+  export async function getReporteMovimientos(params = {}) {
+    try {
+      const data = await makeGetRequest('/api/reportes/movimientos', params);
+      return data;
+    } catch (e) {
+      console.error('Error al obtener reporte de movimientos de insumos:', e);
+      throw e;
+    }
+  }
+
 /**
  * Obtener reporte de producción
  * @param {Object} [params] - { estado, export }
@@ -43,18 +57,32 @@ export async function getReporteProduccion(params = {}) {
 }
 
 /**
- * Obtener reporte de movimientos de inventario
- * @param {Object} [params] - { material_id, desde, hasta, export }
+ * Obtener reporte de productos
+ * @param {Object} [params] - { estado, export }
  */
-export async function getReporteMovimientos(params = {}) {
+export async function getReporteProductos(params = {}) {
   try {
-    const data = await makeGetRequest('/api/reportes/movimientos', params);
+    const data = await makeGetRequest('/api/reportes/productos', params);
     return data;
   } catch (e) {
-    console.error('Error al obtener reporte de movimientos:', e);
+    console.error('Error al obtener reporte de productos:', e);
     throw e;
   }
 }
+    /**
+   * Obtener reporte de movimientos de productos terminados
+   * @param {Object} [params] - { producto_id, desde, hasta, export }
+   */
+    export async function getReporteMovimientosProductos(params = {}) {
+      try {
+        const data = await makeGetRequest('/api/reportes/movimientosProductos', params);
+        return data;
+      } catch (e) {
+        console.error('Error al obtener reporte de movimientos de productos terminados:', e);
+        throw e;
+      }
+    }
+
 
 /**
  * Obtener reporte de clientes

@@ -1,4 +1,4 @@
-import { Modal, Table, Tag, Progress, Button, Form, InputNumber, Input, DatePicker } from "antd";
+import { Modal, Table, Tag, Progress, Button, Form, InputNumber, DatePicker } from "antd";
 import { useEffect, useState } from "react";
 import { useOrdenProduccionById, useMaterialesPorOrden } from "@/hooks/useOrdenesProduccion";
 import { useProducciones, useFinalizarProduccion, useEliminarProduccion, useEditarProduccion } from "@/hooks/useProducciones";
@@ -74,20 +74,6 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
   const prodColumns = [
     { title: 'Fecha', dataIndex: 'fecha_registro', key: 'fecha_registro', render: (f) => f ? new Date(f).toLocaleString('es-PE') : '-' },
     { title: 'Cantidad producida', dataIndex: 'cantidad_producida', key: 'cantidad_producida', render: v => v ?? '-' },
-    { 
-      title: 'Observaciones', 
-      dataIndex: 'observaciones', 
-      key: 'observaciones', 
-      render: (obs) => obs ? (
-        <div className="max-w-xs">
-          <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded border">
-            {obs}
-          </div>
-        </div>
-      ) : (
-        <span className="text-gray-400 text-sm">Sin observaciones</span>
-      )
-    },
     { title: 'Acciones', key: 'acciones', render: (_, row) => (
       <div className="space-x-2">
         <Button icon={<EditOutlined />} size="small" onClick={() => setModalEditProduccion(row)}>
@@ -147,7 +133,13 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
           <div>
             <div className="flex justify-between items-center mb-2">
               <div className="font-semibold">Producciones realizadas</div>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => onRegistrarProduccion(orden?.id)}>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={() => onRegistrarProduccion(orden?.id)}
+                disabled={progreso >= 100 || totalProducido >= (orden?.cantidad_producir || 0)}
+                title={progreso >= 100 ? 'La orden ya ha alcanzado la cantidad programada' : ''}
+              >
                 Registrar producción
               </Button>
             </div>
@@ -189,7 +181,6 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
           <p className="text-sm text-blue-800">
             <strong>Fecha de registro:</strong> {modalEditProduccion?.fecha_registro ? new Date(modalEditProduccion.fecha_registro).toLocaleString('es-PE') : '-'}<br/>
             <strong>Cantidad actual:</strong> {modalEditProduccion?.cantidad_producida || 0} unidades<br/>
-            <strong>Observaciones actuales:</strong> {modalEditProduccion?.observaciones || 'Sin observaciones'}
           </p>
         </div>
 
@@ -197,16 +188,14 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
           form={formEdit}
           layout="vertical"
           initialValues={{
-            cantidad_producida: modalEditProduccion?.cantidad_producida || 1,
-            observaciones: modalEditProduccion?.observaciones || ''
+            cantidad_producida: modalEditProduccion?.cantidad_producida || 1
           }}
           onFinish={async (values) => {
             try {
               await editarMutation.mutateAsync({
                 produccionId: modalEditProduccion.id,
                 produccionData: { 
-                  cantidad_producida: values.cantidad_producida,
-                  observaciones: values.observaciones || ''
+                  cantidad_producida: values.cantidad_producida
                 }
               });
               toast.success('Producción editada correctamente');
@@ -229,16 +218,6 @@ export default function OrdenDetalleModal({ open, onClose, ordenObj, onRegistrar
               min={1}
               placeholder="Ej. 50"
               style={{ width: '100%' }}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="observaciones"
-            label="Observaciones"
-          >
-            <Input.TextArea
-              placeholder="Observaciones adicionales (opcional)"
-              rows={3}
             />
           </Form.Item>
         </Form>

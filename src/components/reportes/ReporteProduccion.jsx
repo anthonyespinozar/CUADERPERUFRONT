@@ -60,14 +60,12 @@ export default function ReporteProduccion() {
 
   const getEstadoColor = (estado) => {
     switch (estado?.toLowerCase()) {
-      case 'completada':
+      case 'finalizado':
         return 'text-green-600';
-      case 'en_proceso':
+      case 'iniciado':
         return 'text-blue-600';
       case 'pendiente':
         return 'text-yellow-600';
-      case 'cancelada':
-        return 'text-red-600';
       default:
         return 'text-gray-600';
     }
@@ -75,14 +73,12 @@ export default function ReporteProduccion() {
 
   const getEstadoIcon = (estado) => {
     switch (estado?.toLowerCase()) {
-      case 'completada':
+      case 'finalizado':
         return CheckCircleIcon;
-      case 'en_proceso':
+      case 'iniciado':
         return ClockIcon;
       case 'pendiente':
         return ClockIcon;
-      case 'cancelada':
-        return ExclamationTriangleIcon;
       default:
         return ClockIcon;
     }
@@ -90,7 +86,13 @@ export default function ReporteProduccion() {
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('es-ES');
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (isLoading) {
@@ -116,9 +118,11 @@ export default function ReporteProduccion() {
   }
 
   const totalOrdenes = produccion?.length || 0;
-  const ordenesCompletadas = produccion?.filter(p => p.estado?.toLowerCase() === 'completada').length || 0;
-  const ordenesEnProceso = produccion?.filter(p => p.estado?.toLowerCase() === 'en_proceso').length || 0;
+  const ordenesFinalizadas = produccion?.filter(p => p.estado?.toLowerCase() === 'finalizado').length || 0;
+  const ordenesIniciadas = produccion?.filter(p => p.estado?.toLowerCase() === 'iniciado').length || 0;
   const ordenesPendientes = produccion?.filter(p => p.estado?.toLowerCase() === 'pendiente').length || 0;
+  const totalProducido = produccion?.reduce((sum, p) => sum + (parseInt(p.cantidad_real) || 0), 0) || 0;
+  const totalProgramado = produccion?.reduce((sum, p) => sum + (parseInt(p.cantidad_programada) || 0), 0) || 0;
 
   return (
     <div className="space-y-6">
@@ -136,22 +140,59 @@ export default function ReporteProduccion() {
       </div>
 
       {/* Filtros */}
-      <ReporteFiltros
-        filtros={filtros}
-        onFiltrosChange={handleFiltrosChange}
-        onExportar={handleExportar}
-        tiposExportacion={['excel', 'pdf']}
-        mostrarFiltros={true}
-      />
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex flex-col lg:flex-row gap-4 flex-1">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estado
+              </label>
+              <select
+                value={filtros.estado || ''}
+                onChange={(e) => handleFiltrosChange({ ...filtros, estado: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Todos los estados</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="iniciado">Iniciado</option>
+                <option value="finalizado">Finalizado</option>
+              </select>
+            </div>
+          </div>
+          
+          {/* Botones de exportación */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleExportar({ ...filtros, export: 'excel' })}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Exportar Excel
+            </button>
+            
+            <button
+              onClick={() => handleExportar({ ...filtros, export: 'pdf' })}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Exportar PDF
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Estadísticas */}
       {produccion && produccion.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="flex items-center">
               <ClipboardDocumentListIcon className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Total Órdenes</p>
+                <p className="text-sm font-medium text-gray-600">Total Registros</p>
                 <p className="text-2xl font-bold text-gray-900">{totalOrdenes}</p>
               </div>
             </div>
@@ -161,8 +202,8 @@ export default function ReporteProduccion() {
             <div className="flex items-center">
               <CheckCircleIcon className="h-8 w-8 text-green-600" />
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Completadas</p>
-                <p className="text-2xl font-bold text-gray-900">{ordenesCompletadas}</p>
+                <p className="text-sm font-medium text-gray-600">Finalizadas</p>
+                <p className="text-2xl font-bold text-gray-900">{ordenesFinalizadas}</p>
               </div>
             </div>
           </div>
@@ -171,8 +212,8 @@ export default function ReporteProduccion() {
             <div className="flex items-center">
               <ClockIcon className="h-8 w-8 text-blue-600" />
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">En Proceso</p>
-                <p className="text-2xl font-bold text-gray-900">{ordenesEnProceso}</p>
+                <p className="text-sm font-medium text-gray-600">Iniciadas</p>
+                <p className="text-2xl font-bold text-gray-900">{ordenesIniciadas}</p>
               </div>
             </div>
           </div>
@@ -183,6 +224,26 @@ export default function ReporteProduccion() {
               <div className="ml-3">
                 <p className="text-sm font-medium text-gray-600">Pendientes</p>
                 <p className="text-2xl font-bold text-gray-900">{ordenesPendientes}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center">
+              <UserGroupIcon className="h-8 w-8 text-purple-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Programado</p>
+                <p className="text-2xl font-bold text-gray-900">{totalProgramado}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center">
+              <CheckCircleIcon className="h-8 w-8 text-green-600" />
+              <div className="ml-3">
+                <p className="text-sm font-medium text-gray-600">Producido</p>
+                <p className="text-2xl font-bold text-gray-900">{totalProducido}</p>
               </div>
             </div>
           </div>
@@ -206,22 +267,22 @@ export default function ReporteProduccion() {
                   Código
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tipo Cuaderno
+                  Producto
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cantidad
+                  Programado
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Producido
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Cumplimiento
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Estado
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha Programada
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha Inicio
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha Fin
+                  Fecha Registro
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Cliente
@@ -229,22 +290,32 @@ export default function ReporteProduccion() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {produccion && produccion.map((orden) => {
+              {produccion && produccion.map((orden, index) => {
                 const EstadoIcon = getEstadoIcon(orden.estado);
+                const cumplimiento = parseFloat(orden.cumplimiento?.replace('%', '') || 0);
+                const cumplimientoColor = cumplimiento >= 100 ? 'text-green-600' : cumplimiento >= 50 ? 'text-yellow-600' : 'text-red-600';
                 
                 return (
-                  <tr key={orden.orden_id} className="hover:bg-gray-50">
+                  <tr key={`${orden.orden_id}-${index}`} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       #{orden.orden_id}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {orden.codigo}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {orden.tipo_cuaderno}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {orden.producto || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {orden.cantidad_producir}
+                      {orden.cantidad_programada || 0}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {orden.cantidad_real || 0}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`text-sm font-bold ${cumplimientoColor}`}>
+                        {orden.cumplimiento || '0%'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -255,13 +326,7 @@ export default function ReporteProduccion() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(orden.fecha_programada)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(orden.fecha_inicio)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(orden.fecha_fin)}
+                      {formatDate(orden.fecha_registro)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {orden.cliente || '-'}

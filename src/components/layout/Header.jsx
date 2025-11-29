@@ -7,7 +7,6 @@ export function Header({ user }) {
     <header className="bg-white shadow">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <h1 className="text-xl font-semibold text-gray-900">
-          CuaderPeru
         </h1>
 
         <div className="flex items-center gap-4">

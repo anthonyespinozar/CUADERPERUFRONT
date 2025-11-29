@@ -20,7 +20,9 @@ const PROTECTED_ROUTES = {
   '/reportes/inventario': ['administrador', 'usuario'],
   '/reportes/compras': ['administrador', 'usuario'],
   '/reportes/produccion': ['administrador', 'usuario'],
-  '/reportes/movimientos': ['administrador', 'usuario'],
+  '/reportes/movimientos': ['administrador', 'usuario'], // Movimientos de Insumos
+  '/reportes/productos': ['administrador', 'usuario'],
+  '/reportes/movimientos-productos': ['administrador', 'usuario'],
   '/reportes/clientes': ['administrador', 'usuario'],
   '/reportes/proveedores': ['administrador', 'usuario']
 };

@@ -6,6 +6,8 @@ import {
   getReporteMovimientos,
   getReporteClientes,
   getReporteProveedores,
+  getReporteMovimientosProductos,
+  getReporteProductos,
 } from "@/services/reportesService";
 
 // Reporte de Inventario
@@ -27,6 +29,15 @@ export const useReporteCompras = (params = {}) => {
 
   return query;
 };
+// Reporte de Movimientos insumos
+export const useReporteMovimientos = (params = {}) => {
+  const query = useQuery({
+    queryKey: ["reporteMovimientos", params],
+    queryFn: () => getReporteMovimientos(params),
+  });
+
+  return query;
+};
 
 // Reporte de Producción
 export const useReporteProduccion = (params = {}) => {
@@ -38,15 +49,26 @@ export const useReporteProduccion = (params = {}) => {
   return query;
 };
 
-// Reporte de Movimientos
-export const useReporteMovimientos = (params = {}) => {
+// Reporte de productos
+export const useReporteProductos = (params = {}) => {
   const query = useQuery({
-    queryKey: ["reporteMovimientos", params],
-    queryFn: () => getReporteMovimientos(params),
+    queryKey: ["reporteProductos", params],
+    queryFn: () => getReporteProductos(params),
   });
 
   return query;
 };
+
+// Reporte de Movimientos productos terminados
+export const useReporteMovimientosProductos = (params = {}) => {
+  const query = useQuery({
+    queryKey: ["reporteMovimientosProductosTerminados", params],
+    queryFn: () => getReporteMovimientosProductos(params),
+  });
+
+  return query;
+};
+
 
 // Reporte de Clientes
 export const useReporteClientes = (params = {}) => {

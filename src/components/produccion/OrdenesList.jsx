@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useOrdenesProduccion } from "@/hooks/useOrdenesProduccion";
 import { useRouter } from "next/navigation";
-import { Form, Button, Tag, Select, Progress, Modal, InputNumber, Input, DatePicker } from "antd";
+import { Form, Button, Tag, Select, Progress, Modal, InputNumber, DatePicker } from "antd";
 import { EyeOutlined, PlayCircleOutlined, CheckCircleOutlined, DeleteOutlined, PlusOutlined, EditOutlined, HistoryOutlined } from "@ant-design/icons";
 import { DataTable } from "@/components/tables/DataTable";
 import { ConfirmationModal } from "@/components/common/ConfirmationModal";
@@ -14,6 +14,7 @@ import { useClientes } from "@/hooks/useClientes";
 import OrdenDetalleModal from "@/components/produccion/OrdenDetalleModal";
 import OrdenHistorialModal from "@/components/produccion/OrdenHistorialModal";
 import { useMateriales } from "@/hooks/useMateriales";
+import { useProductos } from "@/hooks/useProductos";
 import {
   useFinalizarProduccion,
   useRegistrarProduccion,
@@ -50,6 +51,7 @@ export default function OrdenesList() {
   const [modalDetalle, setModalDetalle] = useState({ open: false, ordenId: null });
   const { data: clientes } = useClientes();
   const { data: materiales } = useMateriales();
+  const { data: productos } = useProductos();
   const [materialesSeleccionados, setMaterialesSeleccionados] = useState([]);
 
   // Hooks de mutación
@@ -85,7 +87,7 @@ export default function OrdenesList() {
       lista = lista.filter(
         (o) =>
           (o.cliente_nombre && o.cliente_nombre.toLowerCase().includes(b)) ||
-          (o.tipo_cuaderno && o.tipo_cuaderno.toLowerCase().includes(b))
+          (o.producto_nombre && o.producto_nombre.toLowerCase().includes(b))
       );
     }
     return lista;
@@ -179,9 +181,9 @@ export default function OrdenesList() {
       render: (row) => <span className="font-semibold">{row.codigo || '-'}</span>
     },
     {
-      key: 'tipo_cuaderno',
+      key: 'producto_nombre',
       header: 'Producto',
-      render: (row) => row.tipo_cuaderno || '-'
+      render: (row) => row.producto_nombre || '-'
     },
     {
       key: 'cantidad_producir',
@@ -254,19 +256,25 @@ export default function OrdenesList() {
           </Button>
         )}
 
-        {row.estado === 'iniciado' && (
-          <Button
-            icon={<CheckCircleOutlined />}
-            style={{
-              backgroundColor: '#8b5cf6',
-              borderColor: '#8b5cf6',
-              color: 'white'
-            }}
-            onClick={() => handleRegistrarProduccion(row.id)}
-          >
-            Registrar producción
-          </Button>
-        )}
+        {row.estado === 'iniciado' && (() => {
+          const { producido, total } = calcularProgreso(row.id);
+          const estaCompleta = producido >= total;
+          return (
+            <Button
+              icon={<CheckCircleOutlined />}
+              style={{
+                backgroundColor: '#8b5cf6',
+                borderColor: '#8b5cf6',
+                color: 'white'
+              }}
+              onClick={() => handleRegistrarProduccion(row.id)}
+              disabled={estaCompleta}
+              title={estaCompleta ? 'La orden ya ha alcanzado la cantidad programada' : ''}
+            >
+              Registrar producción
+            </Button>
+          );
+        })()}
 
         {row.estado === 'iniciado' && (
           <Button type="default" danger icon={<CheckCircleOutlined />} onClick={() => handleFinalizar(row)}>
@@ -308,7 +316,7 @@ export default function OrdenesList() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Gestión de Producción</h1>
+        <h1 className="text-2xl font-semibold">Ordenes de Producción</h1>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleNuevaOrden}>
           Nueva Orden
         </Button>
@@ -393,7 +401,7 @@ export default function OrdenesList() {
 
               const payload = {
                 ordenData: {
-                  tipo_cuaderno: values.tipo_cuaderno,
+                  producto_id: values.producto_id,
                   cantidad_producir: values.cantidad_producir,
                   estado: "pendiente",
                   fecha_programada: values.fecha_programada,
@@ -439,11 +447,22 @@ export default function OrdenesList() {
           </Form.Item>
 
           <Form.Item
-            name="tipo_cuaderno"
+            name="producto_id"
             label="Producto a fabricar"
-            rules={[{ required: true, message: 'Ingrese el producto' }]}
+            rules={[{ required: true, message: 'Seleccione el producto' }]}
           >
-            <Input placeholder="Ej. Cuaderno rayado" />
+            <Select
+              placeholder="Seleccione un producto"
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option?.children?.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {productos?.map(p => (
+                <Select.Option key={p.id} value={p.id}>{p.nombre}</Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           {/* Fecha y Cantidad */}
@@ -560,10 +579,21 @@ export default function OrdenesList() {
           layout="vertical"
           onFinish={async (values) => {
             try {
+              // Validar que no se exceda el total a producir
+              const { producido } = calcularProgreso(modalRegistrar.ordenId);
+              const totalAProducir = modalRegistrar.orden?.cantidad_producir || 0;
+              const cantidadARegistrar = values.cantidad_producida;
+              const nuevoTotal = producido + cantidadARegistrar;
+
+              if (nuevoTotal > totalAProducir) {
+                const faltante = totalAProducir - producido;
+                toast.error(`No se puede registrar ${cantidadARegistrar} unidades. Ya se han producido ${producido} de ${totalAProducir}. Solo faltan ${faltante} unidades por producir.`);
+                return;
+              }
+
               const produccionData = {
                 cantidad_producida: values.cantidad_producida,
-                fecha_produccion: values.fecha_produccion,
-                observaciones: values.observaciones || ''
+                fecha_produccion: values.fecha_produccion
               };
 
               await registrarMutation.mutateAsync({
@@ -579,29 +609,65 @@ export default function OrdenesList() {
             }
           }}
         >
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">
-              <strong>Orden:</strong> {modalRegistrar.orden?.tipo_cuaderno}<br/>
-              <strong>Cliente:</strong> {modalRegistrar.orden?.cliente_nombre}<br/>
-              <strong>Total a producir:</strong> {modalRegistrar.orden?.cantidad_producir} unidades
-            </p>
-          </div>
+          {(() => {
+            const { producido } = calcularProgreso(modalRegistrar.ordenId);
+            const totalAProducir = modalRegistrar.orden?.cantidad_producir || 0;
+            const faltante = totalAProducir - producido;
+            const estaCompleta = faltante <= 0;
+            
+            return (
+              <>
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-800">
+                    <strong>Orden:</strong> {modalRegistrar.orden?.producto_nombre}<br/>
+                    <strong>Cliente:</strong> {modalRegistrar.orden?.cliente_nombre}<br/>
+                    <strong>Total a producir:</strong> {totalAProducir} unidades<br/>
+                    <strong>Ya producido:</strong> {producido} unidades<br/>
+                    <strong>Faltante por producir:</strong> <span className={estaCompleta ? 'text-red-600 font-bold' : ''}>{Math.max(0, faltante)} unidades</span>
+                  </p>
+                </div>
 
-          <Form.Item
-            name="cantidad_producida"
-            label="Cantidad Producida"
-            rules={[
-              { required: true, message: 'Ingrese la cantidad producida' },
-              { type: 'number', min: 1, message: 'Debe ser mayor a 0' }
-            ]}
-          >
-            <InputNumber
-              min={1}
-              max={modalRegistrar.orden?.cantidad_producir || 999999}
-              placeholder="Ej. 50"
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
+                {estaCompleta && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-sm text-yellow-800">
+                      <strong>⚠️ Advertencia:</strong> Esta orden ya ha alcanzado o superado la cantidad programada. No se puede registrar más producción.
+                    </p>
+                  </div>
+                )}
+
+                <Form.Item
+                  name="cantidad_producida"
+                  label="Cantidad Producida"
+                  rules={[
+                    { required: true, message: 'Ingrese la cantidad producida' },
+                    { type: 'number', min: 1, message: 'Debe ser mayor a 0' },
+                    {
+                      validator: (_, value) => {
+                        if (!value) return Promise.resolve();
+                        const { producido } = calcularProgreso(modalRegistrar.ordenId);
+                        const totalAProducir = modalRegistrar.orden?.cantidad_producir || 0;
+                        const nuevoTotal = producido + value;
+                        
+                        if (nuevoTotal > totalAProducir) {
+                          const faltante = totalAProducir - producido;
+                          return Promise.reject(new Error(`Solo faltan ${faltante} unidades por producir. No se puede exceder el total de ${totalAProducir} unidades.`));
+                        }
+                        return Promise.resolve();
+                      }
+                    }
+                  ]}
+                >
+                  <InputNumber
+                    min={1}
+                    max={Math.max(0, faltante)}
+                    placeholder="Ej. 50"
+                    style={{ width: '100%' }}
+                    disabled={estaCompleta}
+                  />
+                </Form.Item>
+              </>
+            );
+          })()}
 
           <Form.Item
             name="fecha_produccion"
@@ -613,16 +679,6 @@ export default function OrdenesList() {
               placeholder="Seleccionar fecha"
               style={{ width: '100%' }}
               format="DD/MM/YYYY"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="observaciones"
-            label="Observaciones"
-          >
-            <Input.TextArea
-              placeholder="Observaciones adicionales (opcional)"
-              rows={3}
             />
           </Form.Item>
         </Form>
@@ -657,7 +713,7 @@ export default function OrdenesList() {
               ? dayjs(modalEditarOrden.orden.fecha_programada)
               : null,
             cliente_id: modalEditarOrden.orden?.cliente_id || '',
-            tipo_cuaderno: modalEditarOrden.orden?.tipo_cuaderno || '',
+            producto_id: modalEditarOrden.orden?.producto_id || '',
             cantidad_producir: modalEditarOrden.orden?.cantidad_producir || ''
           }}
           onFinish={async (values) => {
@@ -672,7 +728,7 @@ export default function OrdenesList() {
                 orden: {
                   ordenData: {
                     codigo: modalEditarOrden.orden.codigo,
-                    tipo_cuaderno: values.tipo_cuaderno,
+                    producto_id: values.producto_id,
                     cantidad_producir: values.cantidad_producir,
                     estado: modalEditarOrden.orden.estado,
                     fecha_programada: values.fecha_programada,
@@ -717,11 +773,22 @@ export default function OrdenesList() {
           </Form.Item>
 
           <Form.Item
-            name="tipo_cuaderno"
+            name="producto_id"
             label="Producto a fabricar"
-            rules={[{ required: true, message: 'Ingrese el producto' }]}
+            rules={[{ required: true, message: 'Seleccione el producto' }]}
           >
-            <Input placeholder="Ej. Cuaderno rayado" />
+            <Select
+              placeholder="Seleccione un producto"
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option?.children?.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {productos?.map(p => (
+                <Select.Option key={p.id} value={p.id}>{p.nombre}</Select.Option>
+              ))}
+            </Select>
           </Form.Item>
 
           {/* Fecha y Cantidad */}

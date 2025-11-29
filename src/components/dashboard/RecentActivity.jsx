@@ -136,13 +136,13 @@ export function RecentPurchases({ purchases }) {
   );
 }
 
-export function StockAlerts({ stockData }) {
-  if (!stockData || stockData.length === 0) {
+export function StockAlerts({ materialesCriticos }) {
+  if (!materialesCriticos || materialesCriticos.length === 0) {
     return null;
   }
 
-  const lowStockItems = stockData.filter(item => item.stock_actual <= 50 && item.stock_actual > 0);
-  const outOfStockItems = stockData.filter(item => item.stock_actual <= 0);
+  const outOfStockItems = materialesCriticos.filter(item => item.stock_actual <= 0);
+  const lowStockItems = materialesCriticos.filter(item => item.stock_actual > 0 && item.stock_actual <= item.stock_minimo);
 
   if (lowStockItems.length === 0 && outOfStockItems.length === 0) {
     return null;
@@ -157,7 +157,7 @@ export function StockAlerts({ stockData }) {
           <h4 className="text-sm font-medium text-red-600 mb-2">Sin Stock</h4>
           <div className="space-y-2">
             {outOfStockItems.map(item => (
-              <div key={item.nombre} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+              <div key={item.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                 <div className="flex items-center">
                   <CubeIcon className="h-4 w-4 text-red-500 mr-2" />
                   <span className="text-sm font-medium text-gray-900">{item.nombre}</span>
@@ -171,15 +171,18 @@ export function StockAlerts({ stockData }) {
 
       {lowStockItems.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-yellow-600 mb-2">Stock Bajo</h4>
+          <h4 className="text-sm font-medium text-yellow-600 mb-2">Stock Bajo del Mínimo</h4>
           <div className="space-y-2">
             {lowStockItems.map(item => (
-              <div key={item.nombre} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+              <div key={item.id} className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
                 <div className="flex items-center">
                   <CubeIcon className="h-4 w-4 text-yellow-500 mr-2" />
                   <span className="text-sm font-medium text-gray-900">{item.nombre}</span>
                 </div>
-                <span className="text-sm text-yellow-600 font-medium">{item.stock_actual} unidades</span>
+                <div className="text-right">
+                  <span className="text-sm text-yellow-600 font-medium">{item.stock_actual} unidades</span>
+                  <span className="text-xs text-gray-500 block">Mínimo: {item.stock_minimo}</span>
+                </div>
               </div>
             ))}
           </div>

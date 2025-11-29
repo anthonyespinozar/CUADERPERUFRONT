@@ -34,7 +34,7 @@ import {
   
   /**
    * Crear nueva orden de producción
-   * @param {object} orden - Objeto con tipo_cuaderno, cantidad_producir, fecha_programada, cliente_id y materiales
+   * @param {object} orden - Objeto con producto_id, cantidad_producir, fecha_programada, cliente_id y materiales
    */
   export async function createOrdenProduccion(orden) {
     try {
@@ -49,7 +49,7 @@ import {
   /**
    * Actualizar orden de producción
    * @param {number|string} id - ID de la orden
-   * @param {object} orden - Datos a actualizar (tipo_cuaderno, cantidad_producir, etc.)
+   * @param {object} orden - Datos a actualizar (producto_id, cantidad_producir, etc.)
    */
   export async function updateOrdenProduccion(id, orden) {
     try {

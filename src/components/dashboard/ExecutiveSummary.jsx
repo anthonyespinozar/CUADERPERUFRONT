@@ -69,7 +69,7 @@ export function ExecutiveSummary({ data }) {
             <div>
               <p className="text-sm font-medium text-gray-600">Inventario</p>
               <p className="text-2xl font-bold text-gray-900">
-                {data.totalMateriasPrimas || 0}
+                {data.totalStockMaterias || 0}
               </p>
               <p className="text-xs text-gray-500">Unidades totales</p>
             </div>
@@ -125,9 +125,9 @@ export function ExecutiveSummary({ data }) {
         </div>
         
         <div className="text-center p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm font-medium text-gray-600">Tipos de Materiales</p>
+          <p className="text-sm font-medium text-gray-600">Materiales Críticos</p>
           <p className="text-xl font-bold text-gray-900">
-            {data.graficoStock?.length || 0}
+            {data.materialesCriticos?.length || 0}
           </p>
         </div>
       </div>

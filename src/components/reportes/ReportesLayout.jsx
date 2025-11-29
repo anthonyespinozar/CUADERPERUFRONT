@@ -51,11 +51,35 @@ const reportes = [
   },
   {
     id: 'movimientos',
-    name: 'Movimientos',
-    description: 'Historial de movimientos de inventario',
+    name: 'Movimientos de Insumos',
+    description: 'Historial de movimientos de insumos (materiales)',
     href: '/reportes/movimientos',
     icon: ArrowUpIcon,
     color: 'bg-orange-500',
+    stats: {
+      total: 'Movimientos',
+      metric: 'Entradas/Salidas'
+    }
+  },
+  {
+    id: 'productos',
+    name: 'Productos',
+    description: 'Reporte completo de productos terminados',
+    href: '/reportes/productos',
+    icon: CubeIcon,
+    color: 'bg-purple-500',
+    stats: {
+      total: 'Productos',
+      metric: 'Stock actual'
+    }
+  },
+  {
+    id: 'movimientos-productos',
+    name: 'Movimientos de Productos',
+    description: 'Historial de movimientos de productos terminados',
+    href: '/reportes/movimientos-productos',
+    icon: ArrowUpIcon,
+    color: 'bg-pink-500',
     stats: {
       total: 'Movimientos',
       metric: 'Entradas/Salidas'

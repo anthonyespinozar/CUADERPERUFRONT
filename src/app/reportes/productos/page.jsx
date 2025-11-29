@@ -1,14 +1,15 @@
-import ReporteMovimientosInsumos from '@/components/reportes/ReporteMovimientosInsumos';
+import ReporteProductos from '@/components/reportes/ReporteProductos';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 export const dynamic = 'force-dynamic';
 
-export default function ReporteMovimientosPage() {
+export default function ReporteProductosPage() {
   return (
     <DashboardLayout>
       <div className="p-6">
-        <ReporteMovimientosInsumos />
+        <ReporteProductos />
       </div>
     </DashboardLayout>
   );
-} 
+}
+

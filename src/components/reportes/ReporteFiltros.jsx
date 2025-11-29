@@ -38,7 +38,7 @@ export default function ReporteFiltros({
           <div className="flex flex-col lg:flex-row gap-4 flex-1">
             {/* Filtros básicos */}
             <div className="flex flex-col lg:flex-row gap-4 flex-1">
-              {filtros.desde && (
+              {'desde' in filtros && (
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Desde
@@ -55,7 +55,7 @@ export default function ReporteFiltros({
                 </div>
               )}
 
-              {filtros.hasta && (
+              {'hasta' in filtros && (
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Hasta
@@ -72,7 +72,7 @@ export default function ReporteFiltros({
                 </div>
               )}
 
-              {filtros.estado && (
+              {'estado' in filtros && (
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Estado
@@ -89,7 +89,7 @@ export default function ReporteFiltros({
                 </div>
               )}
 
-              {filtros.material_id && (
+              {'material_id' in filtros && (
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Material
@@ -101,6 +101,22 @@ export default function ReporteFiltros({
                   >
                     <option value="">Todos los materiales</option>
                     {/* Aquí se cargarían los materiales dinámicamente */}
+                  </select>
+                </div>
+              )}
+
+              {'producto_id' in filtros && (
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Producto
+                  </label>
+                  <select
+                    value={filtros.producto_id || ''}
+                    onChange={(e) => handleFiltroChange('producto_id', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Todos los productos</option>
+                    {/* Aquí se cargarían los productos dinámicamente */}
                   </select>
                 </div>
               )}
